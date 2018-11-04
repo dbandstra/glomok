@@ -27,7 +27,7 @@ function makeTextureImagePieceShadow() {
       pixels[i * 4 + 3] = Math.floor(alpha * 255 + 0.5);
     }
   }
-  return {w, h, pixels, fmt: gl.RGBA};
+  return {w, h, pixels, fmt: 'rgba'};
 }
 // https://briansharpe.wordpress.com/2011/11/14/two-useful-interpolation-functions-for-noise-development/
 

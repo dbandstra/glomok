@@ -64,5 +64,5 @@ function makeTextureImage(boardConfig) {
       Math.round(margin + (h - 2 * margin) * y / (num_lines - 1)),
     );
   });
-  return {w, h, pixels, fmt: gl.RGB};
+  return {w, h, pixels, fmt: 'rgb'};
 }

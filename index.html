@@ -18,28 +18,11 @@
     <script src="src/tex-board.js"></script>
     <script src="src/tex-pieceshadow.js"></script>
     <script src="src/mesh-piece.js"></script>
+    <script src="src/view.js"></script>
     <script src="src/draw-setup.js"></script>
     <script src="src/draw.js"></script>
     <script src="src/gameplay.js"></script>
     <script>
-      let gl = null;
-      let glCanvas = null;
-
-      let board;
-      let sphere;
-
-      let shaderProgram;
-      let pointsShader;
-
-      let tex_board;
-      let tex_pieceshadow;
-
-      let previousTime = 0;
-      let currentAngle = 0;
-      const degreesPerSecond = 60;
-
-      let mousePos = [0, 0];
-
       const boardConfig = {
         numLines: 15,
         imageDim: 2048, // width/height of image
@@ -47,69 +30,44 @@
         worldDim: 1, // world diameter of board (including margin)
       };
 
-      const gridState = new Array(boardConfig.numLines * boardConfig.numLines);
-      for (let i = 0; i < gridState.length; i++) {
-        gridState[i] = null;
-      }
-      function getGridState(gx, gy) {
-        return gridState[gy * boardConfig.numLines + gx];
-      }
-      function setGridState(gx, gy, value) {
-        gridState[gy * boardConfig.numLines + gx] = value;
-      }
-
-      let mouse_gridPos = null;
-      let nextPieceColour = 'black';
-
-      // setGridState(5, 9, 'white');
-      // setGridState(5, 10, 'black');
+      let shouldRepaint = false;
 
       ///////
 
       window.addEventListener('load', startup, false);
 
       function startup() {
-        glCanvas = document.getElementById('glcanvas');
-        gl = glCanvas.getContext('webgl', {
-          // apparently chrome doesn't handle this flag properly
-          // premultipliedAlpha: false,
-        });
+        const gameState = getInitialGameState();
 
-        drawSetup(gl);
+        const glCanvas = document.getElementById('glcanvas');
+        const gl = glCanvas.getContext('webgl');
+
+        const renderState = drawSetup(glCanvas, gl);
+
+        calcViewInfo(gameState, {glCanvas});
 
         glCanvas.addEventListener('mousemove', (e) => {
-          mousePos = [e.clientX, e.clientY];
+          mouseMove(gameState, glCanvas, [e.clientX, e.clientY]);
+          maybeRepaint(renderState, gameState);
         });
-        glCanvas.addEventListener('click', onClick, false);
+        glCanvas.addEventListener('mousedown', () => {
+          clickEvent(gameState);
+          maybeRepaint(renderState, gameState);
+        });
 
-        animateScene();
+        drawScene(renderState, gameState);
       }
 
-      function animateScene() {
-        drawScene();
-
-        window.requestAnimationFrame(function (currentTime) {
-          const deltaAngle = ((currentTime - previousTime) / 1000.0) * degreesPerSecond;
-
-          currentAngle = (currentAngle + deltaAngle) % 360;
-
-          previousTime = currentTime;
-          animateScene();
-        });
+      function repaint() {
+        shouldRepaint = true;
       }
 
-      function onClick() {
-        if (mouse_gridPos !== null && nextPieceColour !== null) {
-          const v = getGridState(mouse_gridPos[0], mouse_gridPos[1]);
-          if (v === null) {
-            setGridState(mouse_gridPos[0], mouse_gridPos[1], nextPieceColour);
-            if (checkVictory(mouse_gridPos[0], mouse_gridPos[1], nextPieceColour)) {
-              console.log('game over, ' + nextPieceColour + ' wins!');
-              nextPieceColour = null;
-            } else {
-              nextPieceColour = nextPieceColour === 'white' ? 'black' : 'white';
-            }
-          }
+      function maybeRepaint(renderState, gameState) {
+        if (shouldRepaint) {
+          shouldRepaint = false;
+          window.requestAnimationFrame(() => {
+            drawScene(renderState, gameState);
+          });
         }
       }
     </script>

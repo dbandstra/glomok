@@ -1,10 +1,10 @@
-function drawSetup(gl) {
-  shaderProgram = buildShaderProgram([
+function drawSetup(glCanvas, gl) {
+  const shaderProgram = buildShaderProgram(gl, [
     {type: gl.VERTEX_SHADER, source: boardVertexShader},
     {type: gl.FRAGMENT_SHADER, source: boardFragmentShader},
   ]);
 
-  pointsShader = buildShaderProgram([
+  const pointsShader = buildShaderProgram(gl, [
     {type: gl.VERTEX_SHADER, source: pieceVertexShader},
     {type: gl.FRAGMENT_SHADER, source: pieceFragmentShader},
   ]);
@@ -16,7 +16,7 @@ function drawSetup(gl) {
   gl.enable(gl.CULL_FACE);
   gl.frontFace(gl.CW);
 
-  {
+  const board = (() => {
     const z = 0;
     // TODO - use boardConfig.worldDim
     const vertexArray = new Float32Array([
@@ -25,31 +25,29 @@ function drawSetup(gl) {
       // triangle 2
       -0.5, 0.5, z, 0.5, -0.5, z, -0.5, -0.5, z,
     ]);
-    vertexBuffer = gl.createBuffer();
+    const vertexBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, vertexArray, gl.STATIC_DRAW);
-    vertexNumComponents = 3;
-    vertexCount = vertexArray.length / vertexNumComponents;
 
     const texCoordArray = new Float32Array([
       0.0, 1.0, 1.0, 1.0, 1.0, 0.0,
       0.0, 1.0, 1.0, 0.0, 0.0, 0.0,
     ]);
-    texCoordBuffer = gl.createBuffer();
+    const texCoordBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, texCoordArray, gl.STATIC_DRAW);
-    board = {
+    return {
       vertexBuffer,
       vertexNumComponents: 3,
       vertexCount: vertexArray.length / 3,
       texCoordBuffer,
     };
-  }
+  })();
 
-  tex_board = uploadTexture(makeTextureImage(boardConfig));
-  tex_pieceshadow = uploadTexture(makeTextureImagePieceShadow());
+  const tex_board = uploadTexture(gl, makeTextureImage(boardConfig));
+  const tex_pieceshadow = uploadTexture(gl, makeTextureImagePieceShadow());
 
-  {
+  const sphere = (() => {
     const {vertexArray, normalsArray, indicesArray, numTriangles} = makePieceMesh();
     const vertexBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
@@ -60,7 +58,7 @@ function drawSetup(gl) {
     const elementBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, elementBuffer);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indicesArray, gl.STATIC_DRAW);
-    sphere = {
+    return {
       vertexBuffer,
       vertexNumComponents: 3,
       vertexCount: vertexArray.length / 3,
@@ -68,10 +66,23 @@ function drawSetup(gl) {
       elementBuffer,
       numTriangles,
     };
-  }
+  })();
+
+  const renderState = {
+    glCanvas,
+    gl,
+    shaderProgram,
+    pointsShader,
+    tex_board,
+    tex_pieceshadow,
+    board,
+    sphere,
+  };
+
+  return renderState;
 }
 
-function uploadTexture({w, h, pixels, fmt}) {
+function uploadTexture(gl, {w, h, pixels, fmt}) {
   // use anisotropic filtering if available. if it's not available,
   // disable mipmapping
 
@@ -81,13 +92,22 @@ function uploadTexture({w, h, pixels, fmt}) {
     gl.getExtension('WEBKIT_EXT_texture_filter_anisotropic');
   // ext = null;
 
+  const glFmt = (() => {
+    switch (fmt) {
+      case 'rgb': return gl.RGB;
+      case 'rgba': return gl.RGBA;
+      default:
+        throw new Error('uploadTexture: bad fmt:', fmt);
+    }
+  })();
+
   const tex = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, tex);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, ext ? gl.LINEAR_MIPMAP_LINEAR : gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  gl.texImage2D(gl.TEXTURE_2D, 0, fmt, w, h, 0, fmt, gl.UNSIGNED_BYTE, pixels);
+  gl.texImage2D(gl.TEXTURE_2D, 0, glFmt, w, h, 0, glFmt, gl.UNSIGNED_BYTE, pixels);
   if (ext) {
     gl.generateMipmap(gl.TEXTURE_2D);
     const max = gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT);
@@ -96,11 +116,11 @@ function uploadTexture({w, h, pixels, fmt}) {
   return tex;
 }
 
-function buildShaderProgram(shaderInfo) {
+function buildShaderProgram(gl, shaderInfo) {
   const program = gl.createProgram();
 
   shaderInfo.forEach(function (desc) {
-    const shader = compileShader(desc.source, desc.type);
+    const shader = compileShader(gl, desc.source, desc.type);
 
     if (shader) {
       gl.attachShader(program, shader);
@@ -117,7 +137,7 @@ function buildShaderProgram(shaderInfo) {
   return program;
 }
 
-function compileShader(source, type) {
+function compileShader(gl, source, type) {
   const shader = gl.createShader(type);
 
   gl.shaderSource(shader, source);
