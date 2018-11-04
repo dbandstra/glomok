@@ -12,6 +12,32 @@ function makeTextureImage(boardConfig) {
     pixels[i * 3 + 1] = 209;
     pixels[i * 3 + 2] = 165;
   }
+  // outer border
+  const border_width = 2;
+  for (let x = 0; x < w; x++) {
+    for (let y = 0; y < border_width; y++) {
+      for (let i = 0; i < 3; i++) {
+        pixels[(y * w + x) * 3 + i] = 0;
+      }
+    }
+    for (let y = h - border_width; y < h; y++) {
+      for (let i = 0; i < 3; i++) {
+        pixels[(y * w + x) * 3 + i] = 0;
+      }
+    }
+  }
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < border_width; x++) {
+      for (let i = 0; i < 3; i++) {
+        pixels[(y * w + x) * 3 + i] = 0;
+      }
+    }
+    for (let x = w - border_width; x < w; x++) {
+      for (let i = 0; i < 3; i++) {
+        pixels[(y * w + x) * 3 + i] = 0;
+      }
+    }
+  }
   // grid
   for (let gy = 0; gy < num_lines; gy++) {
     const gpy = margin + Math.round(gy * (h - 2 * margin) / (num_lines - 1));
