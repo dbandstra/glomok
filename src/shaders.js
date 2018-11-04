@@ -18,11 +18,12 @@ const boardFragmentShader = `
 #endif
 
 uniform sampler2D uTex;
+uniform vec4 uColour;
 
 varying vec2 vTexCoord;
 
 void main() {
-  gl_FragColor = texture2D(uTex, vTexCoord);
+  gl_FragColor = texture2D(uTex, vTexCoord) * uColour;
 }
 `;
 

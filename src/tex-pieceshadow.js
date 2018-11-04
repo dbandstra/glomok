@@ -21,9 +21,9 @@ function makeTextureImagePieceShadow() {
         // return 1 - Math.pow(1 - x * x, 2);
       })();
       const i = y * w + x;
-      pixels[i * 4 + 0] = 0;
-      pixels[i * 4 + 1] = 0;
-      pixels[i * 4 + 2] = 0;
+      pixels[i * 4 + 0] = 255;
+      pixels[i * 4 + 1] = 255;
+      pixels[i * 4 + 2] = 255;
       pixels[i * 4 + 3] = Math.floor(alpha * 255 + 0.5);
     }
   }

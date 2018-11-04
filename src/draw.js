@@ -7,6 +7,10 @@ function drawModel(renderState, {proj, viewmtx, invviewmtx}, model, type, colour
     const scale = (0.03 / 0.5) * 1.55;
     mat4.scale(model, model, vec3.fromValues(scale, scale, scale));
   }
+  if (type === 'pieceshadow-glowing') {
+    const scale = (0.03 / 0.5) * 2;
+    mat4.scale(model, model, vec3.fromValues(scale, scale, scale));
+  }
 
   const modelview = mat4.create();
   mat4.multiply(modelview, invviewmtx, model);
@@ -46,11 +50,13 @@ const eyepos3 = vec3.fromValues(eyepos4[0], eyepos4[1], eyepos4[2]);
         gl.useProgram(shaderProgram);
 
         const uTex = gl.getUniformLocation(shaderProgram, 'uTex');
+        const uColour = gl.getUniformLocation(shaderProgram, 'uColour');
         const uModelViewProjection = gl.getUniformLocation(shaderProgram, 'uModelViewProjection');
 
         gl.bindTexture(gl.TEXTURE_2D, tex_board);
 
         gl.uniform1i(uTex, 0);
+        gl.uniform4fv(uColour, [1, 1, 1, 1]);
         gl.uniformMatrix4fv(uModelViewProjection, false, combined_matrix);
 
         gl.bindBuffer(gl.ARRAY_BUFFER, board.vertexBuffer);
@@ -67,15 +73,21 @@ const eyepos3 = vec3.fromValues(eyepos4[0], eyepos4[1], eyepos4[2]);
       })();
       break;
     case 'pieceshadow':
+    case 'pieceshadow-glowing':
       (() => {
         gl.useProgram(shaderProgram);
 
         const uTex = gl.getUniformLocation(shaderProgram, 'uTex');
+        const uColour = gl.getUniformLocation(shaderProgram, 'uColour');
         const uModelViewProjection = gl.getUniformLocation(shaderProgram, 'uModelViewProjection');
 
+        const colour = type === 'pieceshadow'
+          ? vec4.fromValues(0, 0, 0, 1)
+          : vec4.fromValues(1, 0, 0, 1);
         gl.bindTexture(gl.TEXTURE_2D, tex_pieceshadow);
 
         gl.uniform1i(uTex, 0);
+        gl.uniform4fv(uColour, colour);
         gl.uniformMatrix4fv(uModelViewProjection, false, combined_matrix);
 
         gl.bindBuffer(gl.ARRAY_BUFFER, board.vertexBuffer);
@@ -175,7 +187,11 @@ function drawScene(renderState, gameState) {
     for (let gx = 0; gx < boardConfig.numLines; gx++) {
       const value = getGridState(gameState, gx, gy);
       if (value !== null) {
-        drawModel(renderState, viewInfo, getPieceModelMatrix(gx, gy, 0), 'pieceshadow');
+        if (value.isGlowing) {
+          drawModel(renderState, viewInfo, getPieceModelMatrix(gx, gy, 0), 'pieceshadow-glowing');
+        } else {
+          drawModel(renderState, viewInfo, getPieceModelMatrix(gx, gy, 0), 'pieceshadow');
+        }
       }
     }
   }
@@ -187,7 +203,7 @@ function drawScene(renderState, gameState) {
     for (let gx = 0; gx < boardConfig.numLines; gx++) {
       const value = getGridState(gameState, gx, gy);
       if (value !== null) {
-        drawModel(renderState, viewInfo, getPieceModelMatrix(gx, gy, piece_z), 'piece', colours[value], 1.0);
+        drawModel(renderState, viewInfo, getPieceModelMatrix(gx, gy, piece_z), 'piece', colours[value.colour], 1.0);
       }
     }
   }

@@ -5,9 +5,6 @@ function getInitialGameState() {
     gridState[i] = null;
   }
 
-      // setGridState(5, 9, 'white');
-      // setGridState(5, 10, 'black');
-
   return {
     gridState,
     mousePos: [0, 0],
@@ -33,7 +30,7 @@ function calcViewInfo(gs, {glCanvas}) {
 }
 
 function getGridState(gs, gx, gy) {
-  return gs.gridState[gy * boardConfig.numLines + gx];
+  return gs.gridState[gy * boardConfig.numLines + gx] || null;
 }
 
 function setGridState(gs, gx, gy, value) {
@@ -67,7 +64,10 @@ function clickEvent(gs) {
   if (gs.mouse_gridPos !== null && gs.nextPieceColour !== null) {
     const v = getGridState(gs, gs.mouse_gridPos[0], gs.mouse_gridPos[1]);
     if (v === null) {
-      setGridState(gs, gs.mouse_gridPos[0], gs.mouse_gridPos[1], gs.nextPieceColour);
+      setGridState(gs, gs.mouse_gridPos[0], gs.mouse_gridPos[1], {
+        colour: gs.nextPieceColour,
+        isGlowing: false,
+      });
       if (checkVictory(gs, gs.mouse_gridPos[0], gs.mouse_gridPos[1], gs.nextPieceColour)) {
         setOverlayText(gs.nextPieceColour + ' wins', gs.nextPieceColour);
         setSmallMessage('Refresh page to start a new game.');
@@ -86,42 +86,64 @@ function clickEvent(gs) {
 function checkVictory(gs, gx, gy, colour) {
   // check horizontal
   let num = 0;
-  for (let x = gx - 4; x <= gx + 4; x++) {
-    if (getGridState(gs, x, gy) === colour) {
-      if (++num === 5) {
-        return true;
+  for (let i = -4; i <= 5; i++) {
+    const value = getGridState(gs, gx + i, gy);
+    if (value !== null && value.colour === colour) {
+      num++;
+    } else if (num >= 5) {
+      i--;
+      while (num-- > 0) {
+        getGridState(gs, gx + i - num, gy).isGlowing = true;
       }
+      return true;
     } else {
       num = 0;
     }
   }
   // check vertical
   num = 0;
-  for (let y = gy - 4; y <= gy + 4; y++) {
-    if (getGridState(gs, gx, y) === colour) {
-      if (++num === 5) {
-        return true;
+  for (let i = -4; i <= 5; i++) {
+    const value = getGridState(gs, gx, gy + i);
+    if (value !== null && value.colour === colour) {
+      num++;
+    } else if (num >= 5) {
+      i--;
+      while (num-- > 0) {
+        getGridState(gs, gx, gy + i - num).isGlowing = true;
       }
+      return true;
     } else {
       num = 0;
     }
   }
   // check bottomleft to topright
-  for (let i = -4; i <= 4; i++) {
-    if (getGridState(gs, gx + i, gy + i) === colour) {
-      if (++num === 5) {
-        return true;
+  num = 0;
+  for (let i = -4; i <= 5; i++) {
+    const value = getGridState(gs, gx + i, gy + i);
+    if (value !== null && value.colour === colour) {
+      num++;
+    } else if (num >= 5) {
+      i--;
+      while (num-- > 0) {
+        getGridState(gs, gx + i - num, gy + i - num).isGlowing = true;
       }
+      return true;
     } else {
       num = 0;
     }
   }
   // check bottomright to topleft
-  for (let i = -4; i <= 4; i++) {
-    if (getGridState(gs, gx - i, gy + i) === colour) {
-      if (++num === 5) {
-        return true;
+  num = 0;
+  for (let i = -4; i <= 5; i++) {
+    const value = getGridState(gs, gx - i, gy + i);
+    if (value !== null && value.colour === colour) {
+      num++;
+    } else if (num >= 5) {
+      i--;
+      while (num-- > 0) {
+        getGridState(gs, gx - (i - num), gy + i - num).isGlowing = true;
       }
+      return true;
     } else {
       num = 0;
     }
