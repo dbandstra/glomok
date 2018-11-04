@@ -69,7 +69,7 @@ function clickEvent(gs) {
     if (v === null) {
       setGridState(gs, gs.mouse_gridPos[0], gs.mouse_gridPos[1], gs.nextPieceColour);
       if (checkVictory(gs, gs.mouse_gridPos[0], gs.mouse_gridPos[1], gs.nextPieceColour)) {
-        console.log('game over, ' + gs.nextPieceColour + ' wins!');
+        setOverlayText(gs.nextPieceColour + ' wins', gs.nextPieceColour);
         gs.nextPieceColour = null;
       } else {
         gs.nextPieceColour = gs.nextPieceColour === 'white' ? 'black' : 'white';

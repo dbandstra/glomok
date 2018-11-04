@@ -1,0 +1,28 @@
+body {
+  margin: 0;
+}
+
+#canvas-overlay {
+  width: 1240px;
+  position: absolute;
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+}
+
+#message {
+  font-size: 32px;
+  text-transform: uppercase;
+  font-family: sans-serif;
+}
+#message.black-bg {
+  background: black;
+  color: white;
+}
+#message.white-bg {
+  background: white;
+  color: black;
+  border-bottom-width: 2px;
+  border-bottom-style: solid;
+  border-color: black;
+}

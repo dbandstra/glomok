@@ -3,13 +3,12 @@
   <head>
     <meta charset="utf-8">
     <title>Glomok</title>
-    <style>
-      body {
-        margin: 0;
-      }
-    </style>
+    <link rel="stylesheet" href="style.css">
   </head>
   <body>
+    <div id="canvas-overlay">
+      <div id="message"></div>
+    </div>
     <canvas id="glcanvas" width="1240" height="600">
       Canvas not supported.
     </canvas>
@@ -60,6 +59,12 @@
 
       function repaint() {
         shouldRepaint = true;
+      }
+
+      function setOverlayText(text, bgcolor) {
+        const el = document.getElementById('message')
+        el.innerText = text;
+        el.className = `${bgcolor}-bg`;
       }
 
       function maybeRepaint(renderState, gameState) {
