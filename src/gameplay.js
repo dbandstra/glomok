@@ -70,6 +70,7 @@ function clickEvent(gs) {
       setGridState(gs, gs.mouse_gridPos[0], gs.mouse_gridPos[1], gs.nextPieceColour);
       if (checkVictory(gs, gs.mouse_gridPos[0], gs.mouse_gridPos[1], gs.nextPieceColour)) {
         setOverlayText(gs.nextPieceColour + ' wins', gs.nextPieceColour);
+        setSmallMessage('Refresh page to start a new game.');
         gs.nextPieceColour = null;
       } else {
         gs.nextPieceColour = gs.nextPieceColour === 'white' ? 'black' : 'white';
@@ -81,6 +82,7 @@ function clickEvent(gs) {
 
 // check for victory condition.
 // coords passed are the new piece placed (we only need to check around that)
+// TODO - also check if the board is full (draw)
 function checkVictory(gs, gx, gy, colour) {
   // check horizontal
   let num = 0;

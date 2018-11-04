@@ -6,12 +6,13 @@
     <link rel="stylesheet" href="style.css">
   </head>
   <body>
-    <div id="canvas-overlay">
+    <div class="message-container">
       <div id="message"></div>
     </div>
-    <canvas id="glcanvas" width="1240" height="600">
+    <canvas id="glcanvas" width="800" height="600">
       Canvas not supported.
     </canvas>
+    <div id="message2"></div>
     <script src="gl-matrix-min.js"></script>
     <script src="src/shaders.js"></script>
     <script src="src/tex-board.js"></script>
@@ -45,8 +46,9 @@
 
         calcViewInfo(gameState, {glCanvas});
 
-        glCanvas.addEventListener('mousemove', (e) => {
-          mouseMove(gameState, glCanvas, [e.clientX, e.clientY]);
+        glCanvas.addEventListener('mousemove', (event) => {
+          const {x, y} = getNoPaddingNoBorderCanvasRelativeMousePosition(event);
+          mouseMove(gameState, glCanvas, [x, y]);
           maybeRepaint(renderState, gameState);
         });
         glCanvas.addEventListener('mousedown', () => {
@@ -67,6 +69,10 @@
         el.className = `${bgcolor}-bg`;
       }
 
+      function setSmallMessage(text) {
+        document.getElementById('message2').innerText = text;
+      }
+
       function maybeRepaint(renderState, gameState) {
         if (shouldRepaint) {
           shouldRepaint = false;
@@ -74,6 +80,29 @@
             drawScene(renderState, gameState);
           });
         }
+      }
+
+      // these two functions from here:
+      // https://stackoverflow.com/questions/42309715/how-to-correctly-pass-mouse-coordinates-to-webgl
+      function getRelativeMousePosition(event, target) {
+        target = target || event.target;
+        var rect = target.getBoundingClientRect();
+
+        return {
+          x: event.clientX - rect.left,
+          y: event.clientY - rect.top,
+        }
+      }
+
+      // assumes target or event.target is canvas
+      function getNoPaddingNoBorderCanvasRelativeMousePosition(event, target) {
+        target = target || event.target;
+        var pos = getRelativeMousePosition(event, target);
+
+        pos.x = pos.x * target.width  / target.clientWidth;
+        pos.y = pos.y * target.height / target.clientHeight;
+
+        return pos;
       }
     </script>
   </body>

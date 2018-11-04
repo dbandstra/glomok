@@ -129,7 +129,7 @@ function drawScene(renderState, gameState) {
 
   gl.colorMask(true, true, true, true);
   gl.viewport(0, 0, glCanvas.width, glCanvas.height);
-  gl.clearColor(0.8, 0.9, 1.0, 1.0);
+  gl.clearColor(1, 1, 1, 1);
   gl.clearDepth(1.0);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 

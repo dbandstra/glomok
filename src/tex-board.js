@@ -8,9 +8,9 @@ function makeTextureImage(boardConfig) {
   const pixels = new Uint8Array(w * h * 3);
   // background fill
   for (let i = 0; i < w * h; i++) {
-    pixels[i * 3 + 0] = 184;
-    pixels[i * 3 + 1] = 168;
-    pixels[i * 3 + 2] = 168;
+    pixels[i * 3 + 0] = 238;
+    pixels[i * 3 + 1] = 209;
+    pixels[i * 3 + 2] = 165;
   }
   // grid
   for (let gy = 0; gy < num_lines; gy++) {
