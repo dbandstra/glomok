@@ -1,3 +1,7 @@
+bugs:
+* the 'black/white wins' message doesn't show up on ipad?
+
+features:
 * keyboard control
 * better mobile support (don't rely on mouse hover effect)
 * detect when mouse leaves canvas, and set mousepos to null

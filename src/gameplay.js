@@ -1,6 +1,6 @@
 class GameState {
-  constructor({glCanvas}) {
-    this.viewInfo = this._calcViewInfo('default', {glCanvas});
+  constructor({cameraAngle, glCanvas}) {
+    this.viewInfo = this._calcViewInfo({cameraAngle, glCanvas});
     this.mousePos = [0, 0];
     this.mouse_gridPos = null;
     this.nextPieceColour = 'black';
@@ -13,7 +13,7 @@ class GameState {
     }
   }
 
-  _calcViewInfo(cameraAngle, {glCanvas}) {
+  _calcViewInfo({cameraAngle, glCanvas}) {
     const {proj, xmin, xmax, ymin, ymax, near} = getProjectionMatrix({glCanvas});
 
     const viewmtx = getViewMatrix(cameraAngle);
@@ -49,8 +49,8 @@ class GameState {
     }
   }
 
-  _setCameraAngle(cameraAngle, {glCanvas}) {
-    this.viewInfo = this._calcViewInfo(cameraAngle, {glCanvas});
+  _setCameraAngle({cameraAngle, glCanvas}) {
+    this.viewInfo = this._calcViewInfo({cameraAngle, glCanvas});
     return [['repaint']];
   }
 

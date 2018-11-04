@@ -48,6 +48,7 @@
       };
 
       const persistentState = {
+        cameraAngle: 'default',
         blackWins: 0,
         whiteWins: 0,
       };
@@ -76,7 +77,7 @@
 
         const renderState = drawSetup(glCanvas, gl);
 
-        let gameState = new GameState({glCanvas});
+        let gameState = new GameState({cameraAngle: persistentState.cameraAngle, glCanvas});
 
         glCanvas.addEventListener('mousemove', (event) => {
           const commands = gameState.update('onMouseMove', glCanvas, getNoPaddingNoBorderCanvasRelativeMousePosition(event));
@@ -89,7 +90,8 @@
         // firefox doesn't reset selected option on refresh, so do it manually
         document.getElementById('camera-angle-control').value = 'default';
         document.getElementById('camera-angle-control').addEventListener('change', (e) => {
-          const commands = gameState.update('setCameraAngle', e.target.value, {glCanvas});
+          persistentState.cameraAngle = e.target.value;
+          const commands = gameState.update('setCameraAngle', {cameraAngle: e.target.value, glCanvas});
           runCommands(renderState, gameState, commands);
         });
         document.getElementById('start-new-game-button').addEventListener('click', () => {
@@ -101,7 +103,7 @@
                 break;
               }
             case 'game-over':
-              gameState = new GameState({glCanvas});
+              gameState = new GameState({cameraAngle: persistentState.cameraAngle, glCanvas});
               runCommands(renderState, gameState, [
                 ['repaint'],
                 ['setOverlayText', ''],
