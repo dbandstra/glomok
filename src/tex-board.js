@@ -2,9 +2,12 @@ function makeTextureImage(boardConfig) {
   const w = boardConfig.imageDim;
   const h = boardConfig.imageDim;
   const margin = boardConfig.imageMargin; // number of pixels around the grid (actually distance to centre of outer grid line)
-  const line_radius = 1; // line width will be (1 + 2 * line_radius) pixels
-  const dot_radius = 8;
+  const line_radius = 0; // line width will be (1 + 2 * line_radius) pixels
+  const dot_radius = 3;
+  const dot_feather_radius = 0;
   const num_lines = boardConfig.numLines;
+  const border_width = 2;
+
   const pixels = new Uint8Array(w * h * 3);
   // background fill
   for (let i = 0; i < w * h; i++) {
@@ -13,7 +16,6 @@ function makeTextureImage(boardConfig) {
     pixels[i * 3 + 2] = 165;
   }
   // outer border
-  const border_width = 2;
   for (let x = 0; x < w; x++) {
     for (let y = 0; y < border_width; y++) {
       for (let i = 0; i < 3; i++) {
@@ -66,13 +68,20 @@ function makeTextureImage(boardConfig) {
     }
   }
   function drawDot(dot_x, dot_y) {
-    for (let y = -dot_radius; y <= dot_radius; y++) {
-      for (let x = -dot_radius; x <= dot_radius; x++) {
-        if (x * x + y * y <= dot_radius * dot_radius) {
-          const i = (dot_y + y) * w + (dot_x + x);
+    const outer_radius = dot_radius + dot_feather_radius;
+    for (let y = -outer_radius; y <= outer_radius; y++) {
+      for (let x = -outer_radius; x <= outer_radius; x++) {
+        const i = (dot_y + y) * w + (dot_x + x);
+        const dist2 = Math.sqrt(x * x + y * y) - Math.sqrt(dot_radius * dot_radius);
+        if (dist2 < -dot_feather_radius) {
           pixels[i * 3 + 0] = 0;
           pixels[i * 3 + 1] = 0;
           pixels[i * 3 + 2] = 0;
+        } else if (dist2 < dot_feather_radius) {
+          const frac = (dist2 + dot_feather_radius) / (dot_feather_radius * 2);
+          pixels[i * 3 + 0] = Math.floor(pixels[i * 3 + 0] * frac + 0.5);
+          pixels[i * 3 + 1] = Math.floor(pixels[i * 3 + 1] * frac + 0.5);
+          pixels[i * 3 + 2] = Math.floor(pixels[i * 3 + 2] * frac + 0.5);
         }
       }
     }
