@@ -12,7 +12,9 @@
     <canvas id="glcanvas" width="800" height="600">
       Canvas not supported.
     </canvas>
-    <div id="message2"></div>
+    <div class="start-new-game-container">
+      <button id="start-new-game-button" type="button">Start new game</button>
+    </div>
     <script src="gl-matrix-min.js"></script>
     <script src="src/shaders.js"></script>
     <script src="src/tex-board.js"></script>
@@ -30,55 +32,64 @@
         worldDim: 1, // world diameter of board (including margin)
       };
 
-      let shouldRepaint = false;
-
       ///////
 
       window.addEventListener('load', startup, false);
 
       function startup() {
-        const gameState = getInitialGameState();
-
         const glCanvas = document.getElementById('glcanvas');
         const gl = glCanvas.getContext('webgl');
 
         const renderState = drawSetup(glCanvas, gl);
 
-        calcViewInfo(gameState, {glCanvas});
+        let gameState = new GameState({glCanvas});
 
         glCanvas.addEventListener('mousemove', (event) => {
-          const {x, y} = getNoPaddingNoBorderCanvasRelativeMousePosition(event);
-          mouseMove(gameState, glCanvas, [x, y]);
-          maybeRepaint(renderState, gameState);
+          const commands = gameState.update('onMouseMove', glCanvas, getNoPaddingNoBorderCanvasRelativeMousePosition(event));
+          runCommands(renderState, gameState, commands);
         });
         glCanvas.addEventListener('mousedown', () => {
-          clickEvent(gameState);
-          maybeRepaint(renderState, gameState);
+          const commands = gameState.update('onClick');
+          runCommands(renderState, gameState, commands);
+        });
+        document.getElementById('start-new-game-button').addEventListener('click', () => {
+          switch (gameState.getGameStatus()) {
+            case 'new-game':
+              break;
+            case 'in-progress':
+              if (!confirm('Really start new game?')) {
+                break;
+              }
+            case 'game-over':
+              gameState = new GameState({glCanvas});
+              runCommands(renderState, gameState, [
+                ['repaint'],
+                ['setOverlayText', ''],
+              ]);
+              break;
+          }
         });
 
         drawScene(renderState, gameState);
       }
 
-      function repaint() {
-        shouldRepaint = true;
-      }
+      function runCommands(renderState, gameState, commands) {
+        const commandHandlers = {
+          repaint() {
+            window.requestAnimationFrame(() => {
+              drawScene(renderState, gameState);
+            });
+          },
+          setOverlayText(text) {
+            document.getElementById('message').innerText = text;
+          },
+        };
 
-      function setOverlayText(text, bgcolor) {
-        const el = document.getElementById('message');
-        el.innerText = text;
-        el.className = `${bgcolor}-bg`;
-      }
-
-      function setSmallMessage(text) {
-        document.getElementById('message2').innerText = text;
-      }
-
-      function maybeRepaint(renderState, gameState) {
-        if (shouldRepaint) {
-          shouldRepaint = false;
-          window.requestAnimationFrame(() => {
-            drawScene(renderState, gameState);
-          });
+        for (let [cmd, ...cmdArgs] of commands) {
+          // TODO don't repaint multiple times?
+          if (cmd in commandHandlers) {
+            commandHandlers[cmd](...cmdArgs);
+          }
         }
       }
 
@@ -97,12 +108,12 @@
       // assumes target or event.target is canvas
       function getNoPaddingNoBorderCanvasRelativeMousePosition(event, target) {
         target = target || event.target;
-        var pos = getRelativeMousePosition(event, target);
+        const pos = getRelativeMousePosition(event, target);
 
-        pos.x = pos.x * target.width  / target.clientWidth;
-        pos.y = pos.y * target.height / target.clientHeight;
-
-        return pos;
+        return [
+          pos.x * target.width  / target.clientWidth,
+          pos.y * target.height / target.clientHeight,
+        ];
       }
     </script>
   </body>

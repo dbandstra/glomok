@@ -185,7 +185,7 @@ function drawScene(renderState, gameState) {
   gl.disable(gl.DEPTH_TEST);
   for (let gy = 0; gy < boardConfig.numLines; gy++) {
     for (let gx = 0; gx < boardConfig.numLines; gx++) {
-      const value = getGridState(gameState, gx, gy);
+      const value = gameState.getGridState(gx, gy);
       if (value !== null) {
         if (value.isGlowing) {
           drawModel(renderState, viewInfo, getPieceModelMatrix(gx, gy, 0), 'pieceshadow-glowing');
@@ -201,7 +201,7 @@ function drawScene(renderState, gameState) {
   // gl.enable(gl.DEPTH_TEST);
   for (let gy = 0; gy < boardConfig.numLines; gy++) {
     for (let gx = 0; gx < boardConfig.numLines; gx++) {
-      const value = getGridState(gameState, gx, gy);
+      const value = gameState.getGridState(gx, gy);
       if (value !== null) {
         drawModel(renderState, viewInfo, getPieceModelMatrix(gx, gy, piece_z), 'piece', colours[value.colour], 1.0);
       }

@@ -19,18 +19,14 @@ body {
   font-size: 32px;
   text-transform: uppercase;
   font-family: sans-serif;
-}
-#message.black-bg {
   background: black;
   color: white;
-  box-shadow: 0px 0px 10px red;
-}
-#message.white-bg {
-  background: white;
-  color: black;
-  box-shadow: 0px 0px 10px red;
 }
 
 #message2 {
+  text-align: center;
+}
+
+.start-new-game-container {
   text-align: center;
 }
