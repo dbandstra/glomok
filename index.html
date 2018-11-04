@@ -12,6 +12,13 @@
     <canvas id="glcanvas" width="800" height="600">
       Canvas not supported.
     </canvas>
+    <div class="stats">
+      Wins:
+      <br>
+      Black <span id="black-wins">0</span>
+      <br>
+      White <span id="white-wins">0</span>
+    </div>
     <div class="start-new-game-container">
       <button id="start-new-game-button" type="button">Start new game</button>
     </div>
@@ -30,6 +37,11 @@
         imageDim: 512, // width/height of image
         imageMargin: 32, // number of pixels around the grid
         worldDim: 1, // world diameter of board (including margin)
+      };
+
+      const persistentState = {
+        blackWins: 0,
+        whiteWins: 0,
       };
 
       ///////
@@ -83,6 +95,12 @@
           setOverlayText(text) {
             document.getElementById('message').innerText = text;
           },
+          incrementWinCount(colour) {
+            if (['white', 'black'].indexOf(colour) !== -1) {
+              const n = ++persistentState[colour + 'Wins'];
+              document.getElementById(colour + '-wins').innerText = '' + n;
+            }
+          }
         };
 
         for (let [cmd, ...cmdArgs] of commands) {
