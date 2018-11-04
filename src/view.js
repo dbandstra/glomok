@@ -70,21 +70,16 @@ function getWorldPosFromGridPos(gridx, gridy) {
   return [mx, my];
 }
 
-function getViewMatrix() {
+function getViewMatrix(cameraAngle) {
   const viewmtx = mat4.create();
-  if (true) {
+  if (cameraAngle === 'default') {
     mat4.translate(viewmtx, viewmtx, vec3.fromValues(0, -0.6, 1.1));
     mat4.rotate(viewmtx, viewmtx, 25 * Math.PI / 180.0, vec3.fromValues(1, 0, 0));
-  } else if (true) {
-    // mat4.rotate(viewmtx, viewmtx, 45 * Math.PI / 180.0, vec3.fromValues(0, 0, 1));
+  } else if (cameraAngle === 'straight-down') {
+    mat4.translate(viewmtx, viewmtx, vec3.fromValues(0, 0, 1.3));
+  } else {
     mat4.translate(viewmtx, viewmtx, vec3.fromValues(0, -0.85, 0.4));
     mat4.rotate(viewmtx, viewmtx, 60 * Math.PI / 180.0, vec3.fromValues(1, 0, 0));
-  } else if (false) {
-    mat4.translate(viewmtx, viewmtx, vec3.fromValues(0, -0.6, 0.2));
-    mat4.rotate(viewmtx, viewmtx, 75 * Math.PI / 180.0, vec3.fromValues(1, 0, 0));
-  } else {
-    mat4.translate(viewmtx, viewmtx, vec3.fromValues(0, -0.6, 0.05));
-    mat4.rotate(viewmtx, viewmtx, 90 * Math.PI / 180.0, vec3.fromValues(1, 0, 0));
   }
   return viewmtx;
 }

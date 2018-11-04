@@ -9,9 +9,12 @@
     <div class="message-container">
       <div id="message"></div>
     </div>
-    <canvas id="glcanvas" width="800" height="600">
+    <canvas id="glcanvas" width="700" height="600">
       Canvas not supported.
     </canvas>
+    <div class="start-new-game-container">
+      <button id="start-new-game-button" type="button">Start new game</button>
+    </div>
     <div class="stats">
       Wins:
       <br>
@@ -19,8 +22,13 @@
       <br>
       White <span id="white-wins">0</span>
     </div>
-    <div class="start-new-game-container">
-      <button id="start-new-game-button" type="button">Start new game</button>
+    <div class="camera-angle-container">
+      Camera angle:
+      <select id="camera-angle-control">
+        <option value="default">default</option>
+        <option value="straight-down">straight down</option>
+        <option value="too-steep">too steep</option>
+      </select>
     </div>
     <script src="gl-matrix-min.js"></script>
     <script src="src/shaders.js"></script>
@@ -52,6 +60,20 @@
         const glCanvas = document.getElementById('glcanvas');
         const gl = glCanvas.getContext('webgl');
 
+        // try to make canvas full width of browser window
+        const fullWidth = (() => {
+          // https://stackoverflow.com/questions/3437786/get-the-size-of-the-screen-current-web-page-and-browser-window
+          const w = window;
+          const d = document;
+          const e = d.documentElement;
+          const g = d.getElementsByTagName('body')[0];
+          const x = w.innerWidth || e.clientWidth || g.clientWidth;
+          return x;
+        })();
+        if (fullWidth > glCanvas.width) {
+          glCanvas.width = fullWidth;
+        }
+
         const renderState = drawSetup(glCanvas, gl);
 
         let gameState = new GameState({glCanvas});
@@ -62,6 +84,12 @@
         });
         glCanvas.addEventListener('mousedown', () => {
           const commands = gameState.update('onClick');
+          runCommands(renderState, gameState, commands);
+        });
+        // firefox doesn't reset selected option on refresh, so do it manually
+        document.getElementById('camera-angle-control').value = 'default';
+        document.getElementById('camera-angle-control').addEventListener('change', (e) => {
+          const commands = gameState.update('setCameraAngle', e.target.value, {glCanvas});
           runCommands(renderState, gameState, commands);
         });
         document.getElementById('start-new-game-button').addEventListener('click', () => {
@@ -81,6 +109,7 @@
               break;
           }
         });
+        // TODO - update canvas width on resize
 
         drawScene(renderState, gameState);
       }

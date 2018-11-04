@@ -23,14 +23,8 @@ body {
   color: white;
 }
 
-#message2 {
-  text-align: center;
-}
-
-.stats {
-  text-align: center;
-}
-
+.stats,
+.camera-angle-container,
 .start-new-game-container {
   text-align: center;
 }
