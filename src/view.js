@@ -73,10 +73,10 @@ function getWorldPosFromGridPos(gridx, gridy) {
 function getViewMatrix(cameraAngle) {
   const viewmtx = mat4.create();
   if (cameraAngle === 'default') {
-    mat4.translate(viewmtx, viewmtx, vec3.fromValues(0, -0.6, 1.1));
+    mat4.translate(viewmtx, viewmtx, vec3.fromValues(0, -0.57, 1.1));
     mat4.rotate(viewmtx, viewmtx, 25 * Math.PI / 180.0, vec3.fromValues(1, 0, 0));
   } else if (cameraAngle === 'straight-down') {
-    mat4.translate(viewmtx, viewmtx, vec3.fromValues(0, 0, 1.3));
+    mat4.translate(viewmtx, viewmtx, vec3.fromValues(0, 0.03, 1.3));
   } else {
     mat4.translate(viewmtx, viewmtx, vec3.fromValues(0, -0.85, 0.4));
     mat4.rotate(viewmtx, viewmtx, 60 * Math.PI / 180.0, vec3.fromValues(1, 0, 0));

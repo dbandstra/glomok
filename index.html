@@ -18,9 +18,9 @@
     <div class="stats">
       Wins:
       <br>
-      Black <span id="black-wins">0</span>
+      Player 1: <span id="player-1-wins">0 wins</span>
       <br>
-      White <span id="white-wins">0</span>
+      Player 2: <span id="player-2-wins">0 wins</span>
     </div>
     <div class="camera-angle-container">
       Camera angle:
@@ -49,8 +49,12 @@
 
       const persistentState = {
         cameraAngle: 'default',
-        blackWins: 0,
-        whiteWins: 0,
+        blackPlayer: 'Player 1',
+        whitePlayer: 'Player 2',
+        wins: {
+          'Player 1': 0,
+          'Player 2': 0,
+        },
       };
 
       ///////
@@ -95,6 +99,7 @@
           runCommands(renderState, gameState, commands);
         });
         document.getElementById('start-new-game-button').addEventListener('click', () => {
+          let switchColours = true;
           switch (gameState.getGameStatus()) {
             case 'new-game':
               break;
@@ -102,17 +107,24 @@
               if (!confirm('Really start new game?')) {
                 break;
               }
+              switchColours = false;
             case 'game-over':
+              if (switchColours) {
+                let tmp = persistentState.blackPlayer;
+                persistentState.blackPlayer = persistentState.whitePlayer;
+                persistentState.whitePlayer = tmp;
+              }
               gameState = new GameState({cameraAngle: persistentState.cameraAngle, glCanvas});
               runCommands(renderState, gameState, [
                 ['repaint'],
-                ['setOverlayText', ''],
+                ['nextPlayer', 'black'],
               ]);
               break;
           }
         });
         // TODO - update canvas width on resize
 
+        runCommands(renderState, gameState, [['nextPlayer', 'black']]);
         drawScene(renderState, gameState);
       }
 
@@ -123,14 +135,46 @@
               drawScene(renderState, gameState);
             });
           },
-          setOverlayText(text) {
-            document.getElementById('message').innerText = text;
+          nextPlayer(colour) {
+            const el = document.getElementById('message');
+            el.className = '';
+            switch (colour) {
+              case 'black':
+                el.innerText = persistentState.blackPlayer + ' - black';
+                break;
+              case 'white':
+                el.innerText = persistentState.whitePlayer + ' - white';
+                break;
+            }
           },
           incrementWinCount(colour) {
-            if (['white', 'black'].indexOf(colour) !== -1) {
-              const n = ++persistentState[colour + 'Wins'];
-              document.getElementById(colour + '-wins').innerText = '' + n;
+            let playerId;
+            switch (colour) {
+              case 'black':
+                playerId = persistentState.blackPlayer;
+                break;
+              case 'white':
+                playerId = persistentState.whitePlayer;
+                break;
+              default:
+                throw new Error('bad colour');
             }
+            const n = ++persistentState.wins[playerId];
+            let el = document.getElementById('message');
+            el.className = 'highlighted';
+            switch (playerId) {
+              case 'Player 1':
+                el.innerText = 'Player 1 wins';
+                el = document.getElementById('player-1-wins');
+                break;
+              case 'Player 2':
+                el.innerText = 'Player 2 wins';
+                el = document.getElementById('player-2-wins');
+                break;
+              default:
+                throw new Error('bad playerid');
+            }
+            el.innerText = n === 1 ? '1 win' : n + ' wins';
           }
         };
 

@@ -2,7 +2,6 @@ bugs:
 * the 'black/white wins' message doesn't show up on ipad?
 
 features:
-* keep score for 'player 1' and 'player 2' and have them alternate colours
 * keyboard control
 * better mobile support (don't rely on mouse hover effect)
 * detect when mouse leaves canvas, and set mousepos to null

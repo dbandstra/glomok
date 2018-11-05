@@ -19,6 +19,8 @@ body {
   font-size: 32px;
   text-transform: uppercase;
   font-family: sans-serif;
+}
+#message.highlighted {
   background: black;
   color: white;
 }

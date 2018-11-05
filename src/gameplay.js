@@ -93,13 +93,13 @@ class GameState {
           isGlowing: false,
         });
         if (this._checkVictory(this.mouse_gridPos[0], this.mouse_gridPos[1], this.nextPieceColour)) {
-          commands.push(['setOverlayText', this.nextPieceColour + ' wins']);
           commands.push(['incrementWinCount', this.nextPieceColour]);
           this.nextPieceColour = null;
           this.status = 'game-over';
         } else {
           this.nextPieceColour = this.nextPieceColour === 'white' ? 'black' : 'white';
           this.status = 'in-progress';
+          commands.push(['nextPlayer', this.nextPieceColour]);
         }
         commands.push(['repaint']);
       }
