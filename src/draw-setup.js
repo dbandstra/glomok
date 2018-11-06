@@ -36,12 +36,6 @@ function drawSetup(glCanvas, gl) {
     },
   };
 
-  gl.enable(gl.BLEND);
-  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-
-  gl.enable(gl.CULL_FACE);
-  gl.frontFace(gl.CW);
-
   const board = (() => {
     const z = 0;
     // TODO - use boardConfig.worldDim

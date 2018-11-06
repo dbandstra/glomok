@@ -1,3 +1,15 @@
+// there are two light sources. they are infinitely distant, thus specified by
+// directions rather than by positions. the direction points "backward" (hence
+// the name "light normal").
+// the first light contributes diffuse and specular lighting, the second is
+// only specular (see the shader).
+
+// this light comes down at a 45 degree angle from the south
+const LIGHT_NORMAL_0 = vec3.fromValues(-0.5, -0.5, 1);
+
+// this light comes down at a 45 degree angle from the north
+const LIGHT_NORMAL_1 = vec3.fromValues(0, 2, 1);
+
 function drawModelSetup({proj, viewmtx, invviewmtx}, model) {
   const modelView = mat4.create();
   mat4.multiply(modelView, invviewmtx, model);
@@ -5,38 +17,28 @@ function drawModelSetup({proj, viewmtx, invviewmtx}, model) {
   const modelViewProjection = mat4.create();
   mat4.multiply(modelViewProjection, proj, modelView);
 
-// this matrix will take something from worldspace to local space for the shader
-// actually i'm not sure if it's correct. inverting the model matrix is good.
-// not sure if this is the right way to deal with camera matrix though.
-const argh = mat4.create();
-mat4.invert(argh, modelView);
+  const invModel = mat4.create();
+  mat4.invert(invModel, model);
 
-const eyepos = vec3.create();
-mat4.getTranslation(eyepos, viewmtx);
-const eyepos4 = vec4.fromValues(eyepos[0], eyepos[1], eyepos[2], 1.0);
-vec4.transformMat4(eyepos4, eyepos4, argh);
-const eyepos3 = vec3.fromValues(eyepos4[0], eyepos4[1], eyepos4[2]);
+  const eyePos = vec3.create();
+  mat4.getTranslation(eyePos, viewmtx);
+  vec3.transformMat4(eyePos, eyePos, invModel);
 
-  // const lightnormal0 = vec3.fromValues(0, 0, 1);
-  const lightnormal0 = vec3.fromValues(0.3, 0.5, 1.0);
-  // const lightnormal0 = vec3.fromValues(0, -1, 0);
-
-  const lightnormal1 = vec3.fromValues(0, 30, -5);
-
-  const getLightNormal = (lightnormal) => {
-    vec3.normalize(lightnormal, lightnormal);
-    const ln = vec4.fromValues(lightnormal[0], lightnormal[1], lightnormal[2], 0.0);
-    vec4.transformMat4(ln, ln, argh);
-    const ln3 = vec3.fromValues(ln[0], ln[1], ln[2]);
-    return ln3;
+  const transformLightNormal = (wsDirection) => {
+    const wsNormal = vec3.create();
+    vec3.normalize(wsNormal, wsDirection);
+    const msNormal4 = vec4.fromValues(wsNormal[0], wsNormal[1], wsNormal[2], 0);
+    vec4.transformMat4(msNormal4, msNormal4, invModel);
+    return vec3.fromValues(msNormal4[0], msNormal4[1], msNormal4[2]);
   };
 
   return {
     modelView,
     modelViewProjection,
-    eyePos: eyepos3,
-    lightNormal0: getLightNormal(lightnormal0),
-    lightNormal1: getLightNormal(lightnormal1),
+    // the following have all been transformed into model space
+    eyePos,
+    lightNormal0: transformLightNormal(LIGHT_NORMAL_0),
+    lightNormal1: transformLightNormal(LIGHT_NORMAL_1),
   };
 }
 
@@ -108,6 +110,11 @@ function drawPiece(renderState, setupInfo, {colour, alpha}) {
 function drawScene(renderState, gameState) {
   const {gl, glCanvas} = renderState;
   const {viewInfo} = gameState;
+
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  gl.enable(gl.CULL_FACE);
+  gl.frontFace(gl.CW);
 
   gl.colorMask(true, true, true, true);
   gl.viewport(0, 0, glCanvas.width, glCanvas.height);

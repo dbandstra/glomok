@@ -85,7 +85,7 @@ void main() {
   vec3 spec0 = vec3(0.5, 0.5, 0.45) * pow(d, 32.0);
 
   d = max(0.0, dot(eyeNormal, reflectedLightNormal1));
-  vec3 spec1 = vec3(0.3) * pow(d, 128.0);
+  vec3 spec1 = vec3(0.3) * pow(d, 32.0);
 
   vec4 colour = uGlobalColor;
   gl_FragColor = vec4(colour.rgb * diffuse + spec0 + spec1, colour.a);
