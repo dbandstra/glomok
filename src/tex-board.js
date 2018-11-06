@@ -6,7 +6,7 @@ function makeTextureImage(boardConfig) {
   const dot_radius = 3;
   const dot_feather_radius = 0;
   const num_lines = boardConfig.numLines;
-  const border_width = 2;
+  const border_width = 1;
 
   const pixels = new Uint8Array(w * h * 3);
   // background fill
