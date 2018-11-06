@@ -3,11 +3,7 @@
 // the name "light normal").
 // the first light contributes diffuse and specular lighting, the second is
 // only specular (see the shader).
-
-// this light comes down at a 45 degree angle from the south
 const LIGHT_NORMAL_0 = vec3.fromValues(-0.5, -0.5, 1);
-
-// this light comes down at a 45 degree angle from the north
 const LIGHT_NORMAL_1 = vec3.fromValues(0, 2, 1);
 
 function drawModelSetup({proj, viewmtx, invviewmtx}, model) {
