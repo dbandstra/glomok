@@ -1,17 +1,43 @@
 function drawSetup(glCanvas, gl) {
-  const shaderProgram = buildShaderProgram(gl, [
+  const boardShaderProgram = buildShaderProgram(gl, [
     {type: gl.VERTEX_SHADER, source: boardVertexShader},
     {type: gl.FRAGMENT_SHADER, source: boardFragmentShader},
   ]);
+  const boardShader = {
+    program: boardShaderProgram,
+    uniforms: {
+      uTex: gl.getUniformLocation(boardShaderProgram, 'uTex'),
+      uColour: gl.getUniformLocation(boardShaderProgram, 'uColour'),
+      uModelViewProjection: gl.getUniformLocation(boardShaderProgram, 'uModelViewProjection'),
+    },
+    attributes: {
+      aVertexPosition: gl.getAttribLocation(boardShaderProgram, 'aVertexPosition'),
+      aTexCoord: gl.getAttribLocation(boardShaderProgram, 'aTexCoord'),
+    }
+  };
 
-  const pointsShader = buildShaderProgram(gl, [
+  const pieceShaderProgram = buildShaderProgram(gl, [
     {type: gl.VERTEX_SHADER, source: pieceVertexShader},
     {type: gl.FRAGMENT_SHADER, source: pieceFragmentShader},
   ]);
+  const pieceShader = {
+    program: pieceShaderProgram,
+    uniforms: {
+      uGlobalColor: gl.getUniformLocation(pieceShaderProgram, 'uGlobalColor'),
+      uLightNormal0: gl.getUniformLocation(pieceShaderProgram, 'uLightNormal0'),
+      uLightNormal1: gl.getUniformLocation(pieceShaderProgram, 'uLightNormal1'),
+      uEyePosition: gl.getUniformLocation(pieceShaderProgram, 'uEyePosition'),
+      uModelView: gl.getUniformLocation(pieceShaderProgram, 'uModelView'),
+      uModelViewProjection: gl.getUniformLocation(pieceShaderProgram, 'uModelViewProjection'),
+    },
+    attributes: {
+      aVertexPosition: gl.getAttribLocation(pieceShaderProgram, 'aVertexPosition'),
+      aVertexNormal: gl.getAttribLocation(pieceShaderProgram, 'aVertexNormal'),
+    },
+  };
 
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-  // gl.disable(gl.BLEND);
 
   gl.enable(gl.CULL_FACE);
   gl.frontFace(gl.CW);
@@ -71,8 +97,8 @@ function drawSetup(glCanvas, gl) {
   const renderState = {
     glCanvas,
     gl,
-    shaderProgram,
-    pointsShader,
+    boardShader,
+    pieceShader,
     tex_board,
     tex_pieceshadow,
     board,

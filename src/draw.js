@@ -1,28 +1,15 @@
-function drawModel(renderState, {proj, viewmtx, invviewmtx}, model, type, colour, alpha) {
-  const {gl, shaderProgram, pointsShader, tex_board, tex_pieceshadow, board, sphere} = renderState;
+function drawModelSetup({proj, viewmtx, invviewmtx}, model) {
+  const modelView = mat4.create();
+  mat4.multiply(modelView, invviewmtx, model);
 
-  model = mat4.clone(model);
-  if (type === 'pieceshadow') {
-    // the 1.55 is a phony boost value
-    const scale = (0.03 / 0.5) * 1.55;
-    mat4.scale(model, model, vec3.fromValues(scale, scale, scale));
-  }
-  if (type === 'pieceshadow-glowing') {
-    const scale = (0.03 / 0.5) * 2;
-    mat4.scale(model, model, vec3.fromValues(scale, scale, scale));
-  }
-
-  const modelview = mat4.create();
-  mat4.multiply(modelview, invviewmtx, model);
-
-  const combined_matrix = mat4.create();
-  mat4.multiply(combined_matrix, proj, modelview);
+  const modelViewProjection = mat4.create();
+  mat4.multiply(modelViewProjection, proj, modelView);
 
 // this matrix will take something from worldspace to local space for the shader
 // actually i'm not sure if it's correct. inverting the model matrix is good.
 // not sure if this is the right way to deal with camera matrix though.
 const argh = mat4.create();
-mat4.invert(argh, modelview);
+mat4.invert(argh, modelView);
 
 const eyepos = vec3.create();
 mat4.getTranslation(eyepos, viewmtx);
@@ -44,95 +31,78 @@ const eyepos3 = vec3.fromValues(eyepos4[0], eyepos4[1], eyepos4[2]);
     return ln3;
   };
 
-  switch (type) {
-    case 'board':
-      (() => {
-        gl.useProgram(shaderProgram);
+  return {
+    modelView,
+    modelViewProjection,
+    eyePos: eyepos3,
+    lightNormal0: getLightNormal(lightnormal0),
+    lightNormal1: getLightNormal(lightnormal1),
+  };
+}
 
-        const uTex = gl.getUniformLocation(shaderProgram, 'uTex');
-        const uColour = gl.getUniformLocation(shaderProgram, 'uColour');
-        const uModelViewProjection = gl.getUniformLocation(shaderProgram, 'uModelViewProjection');
+function _drawBoard(renderState, setupInfo, boardParams) {
+  const {gl, boardShader, board} = renderState;
+  const {modelViewProjection} = setupInfo;
+  const {texture, colour} = boardParams;
 
-        gl.bindTexture(gl.TEXTURE_2D, tex_board);
+  gl.useProgram(boardShader.program);
 
-        gl.uniform1i(uTex, 0);
-        gl.uniform4fv(uColour, [1, 1, 1, 1]);
-        gl.uniformMatrix4fv(uModelViewProjection, false, combined_matrix);
+  gl.bindTexture(gl.TEXTURE_2D, texture);
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, board.vertexBuffer);
-        const aVertexPosition = gl.getAttribLocation(shaderProgram, 'aVertexPosition');
-        gl.enableVertexAttribArray(aVertexPosition);
-        gl.vertexAttribPointer(aVertexPosition, board.vertexNumComponents, gl.FLOAT, false, 0, 0);
+  gl.uniform1i(boardShader.uniforms.uTex, 0);
+  gl.uniform4fv(boardShader.uniforms.uColour, colour);
+  gl.uniformMatrix4fv(boardShader.uniforms.uModelViewProjection, false, modelViewProjection);
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, board.texCoordBuffer);
-        const aTexCoord = gl.getAttribLocation(shaderProgram, 'aTexCoord');
-        gl.enableVertexAttribArray(aTexCoord);
-        gl.vertexAttribPointer(aTexCoord, 2, gl.FLOAT, false, 0, 0);
+  gl.bindBuffer(gl.ARRAY_BUFFER, board.vertexBuffer);
+  gl.enableVertexAttribArray(boardShader.attributes.aVertexPosition);
+  gl.vertexAttribPointer(boardShader.attributes.aVertexPosition, board.vertexNumComponents, gl.FLOAT, false, 0, 0);
 
-        gl.drawArrays(gl.TRIANGLES, 0, board.vertexCount);
-      })();
-      break;
-    case 'pieceshadow':
-    case 'pieceshadow-glowing':
-      (() => {
-        gl.useProgram(shaderProgram);
+  gl.bindBuffer(gl.ARRAY_BUFFER, board.texCoordBuffer);
+  gl.enableVertexAttribArray(boardShader.attributes.aTexCoord);
+  gl.vertexAttribPointer(boardShader.attributes.aTexCoord, 2, gl.FLOAT, false, 0, 0);
 
-        const uTex = gl.getUniformLocation(shaderProgram, 'uTex');
-        const uColour = gl.getUniformLocation(shaderProgram, 'uColour');
-        const uModelViewProjection = gl.getUniformLocation(shaderProgram, 'uModelViewProjection');
+  gl.drawArrays(gl.TRIANGLES, 0, board.vertexCount);
+}
 
-        const colour = type === 'pieceshadow'
-          ? vec4.fromValues(0, 0, 0, 1)
-          : vec4.fromValues(1, 0, 0, 1);
-        gl.bindTexture(gl.TEXTURE_2D, tex_pieceshadow);
+function drawBoard(renderState, setupInfo) {
+  _drawBoard(renderState, setupInfo, {
+    texture: renderState.tex_board,
+    colour: vec4.fromValues(1, 1, 1, 1),
+  });
+}
 
-        gl.uniform1i(uTex, 0);
-        gl.uniform4fv(uColour, colour);
-        gl.uniformMatrix4fv(uModelViewProjection, false, combined_matrix);
+function drawPieceShadow(renderState, setupInfo, {isGlowing}) {
+  _drawBoard(renderState, setupInfo, {
+    texture: renderState.tex_pieceshadow,
+    colour: isGlowing
+      ? vec4.fromValues(1, 0, 0, 1)
+      : vec4.fromValues(0, 0, 0, 1),
+  });
+}
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, board.vertexBuffer);
-        const aVertexPosition = gl.getAttribLocation(shaderProgram, 'aVertexPosition');
-        gl.enableVertexAttribArray(aVertexPosition);
-        gl.vertexAttribPointer(aVertexPosition, board.vertexNumComponents, gl.FLOAT, false, 0, 0);
+function drawPiece(renderState, setupInfo, {colour, alpha}) {
+  const {gl, pieceShader, sphere} = renderState;
+  const {modelView, modelViewProjection, eyePos, lightNormal0, lightNormal1} = setupInfo;
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, board.texCoordBuffer);
-        const aTexCoord = gl.getAttribLocation(shaderProgram, 'aTexCoord');
-        gl.enableVertexAttribArray(aTexCoord);
-        gl.vertexAttribPointer(aTexCoord, 2, gl.FLOAT, false, 0, 0);
+  gl.useProgram(pieceShader.program);
 
-        gl.drawArrays(gl.TRIANGLES, 0, board.vertexCount);
-      })();
-      break;
-    case 'piece':
-      (() => {
-        gl.useProgram(pointsShader);
-        const uGlobalColor = gl.getUniformLocation(pointsShader, 'uGlobalColor');
-        const uLightNormal0 = gl.getUniformLocation(pointsShader, 'uLightNormal0');
-        const uLightNormal1 = gl.getUniformLocation(pointsShader, 'uLightNormal1');
-        const uEyePosition = gl.getUniformLocation(pointsShader, 'uEyePosition');
-        const uModelView = gl.getUniformLocation(pointsShader, 'uModelView');
-        const uModelViewProjection = gl.getUniformLocation(pointsShader, 'uModelViewProjection');
-        gl.uniformMatrix4fv(uModelView, false, modelview);
-        gl.uniformMatrix4fv(uModelViewProjection, false, combined_matrix);
-        gl.uniform4fv(uGlobalColor, vec4.fromValues(colour[0], colour[1], colour[2], alpha));
-        gl.uniform3fv(uLightNormal0, getLightNormal(lightnormal0));
-        gl.uniform3fv(uLightNormal1, getLightNormal(lightnormal1));
-        gl.uniform3fv(uEyePosition, eyepos3);
-        gl.bindBuffer(gl.ARRAY_BUFFER, sphere.vertexBuffer);
-        const aVertexPosition = gl.getAttribLocation(pointsShader, 'aVertexPosition');
-        gl.enableVertexAttribArray(aVertexPosition);
-        gl.vertexAttribPointer(aVertexPosition, sphere.vertexNumComponents, gl.FLOAT, false, 0, 0);
+  gl.uniformMatrix4fv(pieceShader.uniforms.uModelView, false, modelView);
+  gl.uniformMatrix4fv(pieceShader.uniforms.uModelViewProjection, false, modelViewProjection);
+  gl.uniform4fv(pieceShader.uniforms.uGlobalColor, vec4.fromValues(colour[0], colour[1], colour[2], alpha));
+  gl.uniform3fv(pieceShader.uniforms.uLightNormal0, lightNormal0);
+  gl.uniform3fv(pieceShader.uniforms.uLightNormal1, lightNormal1);
+  gl.uniform3fv(pieceShader.uniforms.uEyePosition, eyePos);
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, sphere.normalsBuffer);
-        const aVertexNormal = gl.getAttribLocation(pointsShader, 'aVertexNormal');
-        gl.enableVertexAttribArray(aVertexNormal);
-        gl.vertexAttribPointer(aVertexNormal, sphere.vertexNumComponents, gl.FLOAT, false, 0, 0);
+  gl.bindBuffer(gl.ARRAY_BUFFER, sphere.vertexBuffer);
+  gl.enableVertexAttribArray(pieceShader.attributes.aVertexPosition);
+  gl.vertexAttribPointer(pieceShader.attributes.aVertexPosition, sphere.vertexNumComponents, gl.FLOAT, false, 0, 0);
 
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sphere.elementBuffer);
-        gl.drawElements(gl.TRIANGLES, 3 * sphere.numTriangles, gl.UNSIGNED_SHORT, 0);
-      })();
-      break;
-  }
+  gl.bindBuffer(gl.ARRAY_BUFFER, sphere.normalsBuffer);
+  gl.enableVertexAttribArray(pieceShader.attributes.aVertexNormal);
+  gl.vertexAttribPointer(pieceShader.attributes.aVertexNormal, sphere.vertexNumComponents, gl.FLOAT, false, 0, 0);
+
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sphere.elementBuffer);
+  gl.drawElements(gl.TRIANGLES, 3 * sphere.numTriangles, gl.UNSIGNED_SHORT, 0);
 }
 
 function drawScene(renderState, gameState) {
@@ -153,12 +123,6 @@ function drawScene(renderState, gameState) {
   // https://webglfundamentals.org/webgl/lessons/webgl-and-alpha.html
   gl.colorMask(true, true, true, false);
 
-  const boardModelMatrix = (() => {
-    const model = mat4.create();
-    mat4.translate(model, model, vec3.fromValues(0, 0, 0));
-    return model;
-  })();
-
   // gridx/gridy are positions from 0-14 inclusive
   const getPieceModelMatrix = (gridx, gridy, z) => {
     const [mx, my] = getWorldPosFromGridPos(gridx, gridy);
@@ -168,48 +132,63 @@ function drawScene(renderState, gameState) {
     return model;
   };
 
-  const cg = g=>[g,g,g];
   const colours = {
-    'white': cg(0.95),
-    'black': cg(0.2),
+    'white': [0.95, 0.95, 0.95],
+    'black': [0.2, 0.2, 0.2],
   };
-  const piece_z = 0.005;
 
-  // gl.depthMask(gl.TRUE);
-  // gl.disable(gl.DEPTH_TEST);
+  // draw board
   gl.enable(gl.DEPTH_TEST);
-  drawModel(renderState, viewInfo, boardModelMatrix, 'board');
+  const mtx = mat4.create();
+  const setupInfo = drawModelSetup(viewInfo, mtx);
+  drawBoard(renderState, setupInfo);
 
-  // gl.depthMask(gl.FALSE);
   // draw shadows
   gl.disable(gl.DEPTH_TEST);
   for (let gy = 0; gy < boardConfig.numLines; gy++) {
     for (let gx = 0; gx < boardConfig.numLines; gx++) {
       const value = gameState.getGridState(gx, gy);
       if (value !== null) {
+        const mtx = getPieceModelMatrix(gx, gy, 0);
         if (value.isGlowing) {
-          drawModel(renderState, viewInfo, getPieceModelMatrix(gx, gy, 0), 'pieceshadow-glowing');
+          const scale = (0.03 / 0.5) * 2;
+          mat4.scale(mtx, mtx, vec3.fromValues(scale, scale, scale));
         } else {
-          drawModel(renderState, viewInfo, getPieceModelMatrix(gx, gy, 0), 'pieceshadow');
+          const scale = (0.03 / 0.5) * 1.55;
+          mat4.scale(mtx, mtx, vec3.fromValues(scale, scale, scale));
         }
+        const setupInfo = drawModelSetup(viewInfo, mtx);
+        drawPieceShadow(renderState, setupInfo, {
+          isGlowing: value.isGlowing,
+        });
       }
     }
   }
   gl.enable(gl.DEPTH_TEST);
 
   // draw pieces
-  // gl.enable(gl.DEPTH_TEST);
+
   for (let gy = 0; gy < boardConfig.numLines; gy++) {
     for (let gx = 0; gx < boardConfig.numLines; gx++) {
       const value = gameState.getGridState(gx, gy);
       if (value !== null) {
-        drawModel(renderState, viewInfo, getPieceModelMatrix(gx, gy, piece_z), 'piece', colours[value.colour], 1.0);
+        const mtx = getPieceModelMatrix(gx, gy, 0.005);
+        const setupInfo = drawModelSetup(viewInfo, mtx);
+        drawPiece(renderState, setupInfo, {
+          colour: colours[value.colour],
+          alpha: 1.0,
+        });
       }
     }
   }
 
-  // place tile at mouse pos -> snapped grid loc
+  // place translucent tile at mouse pos -> snapped grid loc
   if (gameState.nextPieceColour !== null && gameState.mouse_gridPos !== null) {
-    drawModel(renderState, viewInfo, getPieceModelMatrix(gameState.mouse_gridPos[0], gameState.mouse_gridPos[1], piece_z), 'piece', colours[gameState.nextPieceColour], 0.3);
+    const mtx = getPieceModelMatrix(gameState.mouse_gridPos[0], gameState.mouse_gridPos[1], 0.005);
+    const setupInfo = drawModelSetup(viewInfo, mtx);
+    drawPiece(renderState, setupInfo, {
+      colour: colours[gameState.nextPieceColour],
+      alpha: 0.3,
+    });
   }
 }
