@@ -41,7 +41,6 @@ const pieceVertexShader = `
 attribute vec3 aVertexPosition;
 attribute vec3 aVertexNormal;
 
-uniform mat4 uModelView;
 uniform mat4 uModelViewProjection;
 
 varying vec3 vNormal;

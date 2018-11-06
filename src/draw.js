@@ -29,7 +29,6 @@ function drawModelSetup({proj, viewmtx, invviewmtx}, model) {
   };
 
   return {
-    modelView,
     modelViewProjection,
     // the following have all been transformed into model space
     eyePos,
@@ -80,11 +79,10 @@ function drawPieceShadow(renderState, setupInfo, {isGlowing}) {
 
 function drawPiece(renderState, setupInfo, {colour, alpha}) {
   const {gl, pieceShader, sphere} = renderState;
-  const {modelView, modelViewProjection, eyePos, lightNormal0, lightNormal1} = setupInfo;
+  const {modelViewProjection, eyePos, lightNormal0, lightNormal1} = setupInfo;
 
   gl.useProgram(pieceShader.program);
 
-  gl.uniformMatrix4fv(pieceShader.uniforms.uModelView, false, modelView);
   gl.uniformMatrix4fv(pieceShader.uniforms.uModelViewProjection, false, modelViewProjection);
   gl.uniform4fv(pieceShader.uniforms.uGlobalColor, vec4.fromValues(colour[0], colour[1], colour[2], alpha));
   gl.uniform3fv(pieceShader.uniforms.uLightNormal0, lightNormal0);

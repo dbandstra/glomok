@@ -27,7 +27,6 @@ function drawSetup(glCanvas, gl) {
       uLightNormal0: gl.getUniformLocation(pieceShaderProgram, 'uLightNormal0'),
       uLightNormal1: gl.getUniformLocation(pieceShaderProgram, 'uLightNormal1'),
       uEyePosition: gl.getUniformLocation(pieceShaderProgram, 'uEyePosition'),
-      uModelView: gl.getUniformLocation(pieceShaderProgram, 'uModelView'),
       uModelViewProjection: gl.getUniformLocation(pieceShaderProgram, 'uModelViewProjection'),
     },
     attributes: {
