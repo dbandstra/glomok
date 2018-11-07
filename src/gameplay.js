@@ -14,7 +14,7 @@ class GameState {
   }
 
   _calcViewInfo({cameraAngle, glCanvas}) {
-    const {proj, xmin, xmax, ymin, ymax, near} = getProjectionMatrix({glCanvas});
+    const proj = getProjectionMatrix({glCanvas});
 
     const viewmtx = getViewMatrix(cameraAngle);
 
@@ -22,7 +22,7 @@ class GameState {
     mat4.invert(invviewmtx, viewmtx);
 
     return {
-      proj, xmin, xmax, ymin, ymax, near,
+      proj,
       viewmtx,
       invviewmtx,
     };
@@ -63,7 +63,7 @@ class GameState {
 
     this.mousePos = [mx, my];
 
-    const c = projectMousePos(this, {
+    const c = unprojectMousePos(this, {
       glCanvas,
       ...this.viewInfo,
     });
