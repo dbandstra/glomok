@@ -39,15 +39,15 @@ function makePieceMesh() {
 
   const num_triangles = 2 * num_verts_around + (num_y_verts - 3) * num_verts_around * 2;
 
-  const indicesArray = new Uint16Array(num_triangles * 3);
+  const elementArray = new Uint16Array(num_triangles * 3);
 
   i = 0;
 
   // bottom cone
   for (let r = 0; r < num_verts_around; r++) {
-    indicesArray[i * 3 + 0] = 0;
-    indicesArray[i * 3 + 1] = 1 + r;
-    indicesArray[i * 3 + 2] = 1 + (r + 1) % num_verts_around;
+    elementArray[i * 3 + 0] = 0;
+    elementArray[i * 3 + 1] = 1 + r;
+    elementArray[i * 3 + 2] = 1 + (r + 1) % num_verts_around;
     i++;
   }
   // stacks
@@ -55,13 +55,13 @@ function makePieceMesh() {
     const v0_index = 1 + y * num_verts_around;
     const v1_index = 1 + (y + 1) * num_verts_around;
     for (let r = 0; r < num_verts_around; r++) {
-      indicesArray[i * 3 + 0] = v0_index + r;
-      indicesArray[i * 3 + 1] = v1_index + r;
-      indicesArray[i * 3 + 2] = v1_index + (r + 1) % num_verts_around;
+      elementArray[i * 3 + 0] = v0_index + r;
+      elementArray[i * 3 + 1] = v1_index + r;
+      elementArray[i * 3 + 2] = v1_index + (r + 1) % num_verts_around;
       i++;
-      indicesArray[i * 3 + 0] = v0_index + r;
-      indicesArray[i * 3 + 1] = v1_index + (r + 1) % num_verts_around;
-      indicesArray[i * 3 + 2] = v0_index + (r + 1) % num_verts_around;
+      elementArray[i * 3 + 0] = v0_index + r;
+      elementArray[i * 3 + 1] = v1_index + (r + 1) % num_verts_around;
+      elementArray[i * 3 + 2] = v0_index + (r + 1) % num_verts_around;
       i++;
     }
   }
@@ -69,9 +69,9 @@ function makePieceMesh() {
   for (let r = 0; r < num_verts_around; r++) {
     const v0_index = 1 + num_verts_around * (num_y_verts - 3);
     const v1_index = 1 + num_verts_around * (num_y_verts - 2);
-    indicesArray[i * 3 + 0] = v0_index + r;
-    indicesArray[i * 3 + 1] = v1_index;
-    indicesArray[i * 3 + 2] = v0_index + (r + 1) % num_verts_around;
+    elementArray[i * 3 + 0] = v0_index + r;
+    elementArray[i * 3 + 1] = v1_index;
+    elementArray[i * 3 + 2] = v0_index + (r + 1) % num_verts_around;
     i++;
   }
 
@@ -79,40 +79,39 @@ function makePieceMesh() {
     console.error('bug in sphere mesh indices generation');
   }
 
-  const normalsArray = new Float32Array(num_vertices * 3);
+  const normalArray = new Float32Array(num_vertices * 3);
 
   for (i = 0; i < num_triangles; i++) {
-    const i0 = indicesArray[i * 3 + 0];
-    const i1 = indicesArray[i * 3 + 1];
-    const i2 = indicesArray[i * 3 + 2];
+    const i0 = elementArray[i * 3 + 0];
+    const i1 = elementArray[i * 3 + 1];
+    const i2 = elementArray[i * 3 + 2];
     const p0 = vec3.fromValues(...[0, 1, 2].map(j => vertexArray[i0 * 3 + j]));
     const p1 = vec3.fromValues(...[0, 1, 2].map(j => vertexArray[i1 * 3 + j]));
     const p2 = vec3.fromValues(...[0, 1, 2].map(j => vertexArray[i2 * 3 + j]));
     const u = vec3.create(); vec3.sub(u, p2, p0);
     const v = vec3.create(); vec3.sub(v, p1, p0);
     const n = vec3.create(); vec3.cross(n, u, v);
-    normalsArray[i0 * 3 + 0] += n[0];
-    normalsArray[i0 * 3 + 1] += n[1];
-    normalsArray[i0 * 3 + 2] += n[2];
-    normalsArray[i1 * 3 + 0] += n[0];
-    normalsArray[i1 * 3 + 1] += n[1];
-    normalsArray[i1 * 3 + 2] += n[2];
-    normalsArray[i2 * 3 + 0] += n[0];
-    normalsArray[i2 * 3 + 1] += n[1];
-    normalsArray[i2 * 3 + 2] += n[2];
+    normalArray[i0 * 3 + 0] += n[0];
+    normalArray[i0 * 3 + 1] += n[1];
+    normalArray[i0 * 3 + 2] += n[2];
+    normalArray[i1 * 3 + 0] += n[0];
+    normalArray[i1 * 3 + 1] += n[1];
+    normalArray[i1 * 3 + 2] += n[2];
+    normalArray[i2 * 3 + 0] += n[0];
+    normalArray[i2 * 3 + 1] += n[1];
+    normalArray[i2 * 3 + 2] += n[2];
   }
   for (i = 0; i < num_vertices; i++) {
-    const v = vec3.fromValues(...[0, 1, 2].map(j => normalsArray[i * 3 + j]));
+    const v = vec3.fromValues(...[0, 1, 2].map(j => normalArray[i * 3 + j]));
     vec3.normalize(v, v);
-    normalsArray[i * 3 + 0] = v[0];
-    normalsArray[i * 3 + 1] = v[1];
-    normalsArray[i * 3 + 2] = v[2];
+    normalArray[i * 3 + 0] = v[0];
+    normalArray[i * 3 + 1] = v[1];
+    normalArray[i * 3 + 2] = v[2];
   }
 
   return {
     vertexArray,
-    normalsArray,
-    indicesArray,
-    numTriangles: num_triangles,
+    normalArray,
+    elementArray,
   };
 }

@@ -93,7 +93,7 @@ function drawPiece(renderState, setupInfo, {colour, alpha}) {
   gl.enableVertexAttribArray(pieceShader.attributes.aVertexPosition);
   gl.vertexAttribPointer(pieceShader.attributes.aVertexPosition, sphere.vertexNumComponents, gl.FLOAT, false, 0, 0);
 
-  gl.bindBuffer(gl.ARRAY_BUFFER, sphere.normalsBuffer);
+  gl.bindBuffer(gl.ARRAY_BUFFER, sphere.normalBuffer);
   gl.enableVertexAttribArray(pieceShader.attributes.aVertexNormal);
   gl.vertexAttribPointer(pieceShader.attributes.aVertexNormal, sphere.vertexNumComponents, gl.FLOAT, false, 0, 0);
 

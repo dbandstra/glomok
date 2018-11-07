@@ -1,104 +1,76 @@
 function drawSetup(glCanvas, gl) {
-  const boardShaderProgram = buildShaderProgram(gl, [
-    {type: gl.VERTEX_SHADER, source: boardVertexShader},
-    {type: gl.FRAGMENT_SHADER, source: boardFragmentShader},
-  ]);
-  const boardShader = {
-    program: boardShaderProgram,
-    uniforms: {
-      uTex: gl.getUniformLocation(boardShaderProgram, 'uTex'),
-      uColour: gl.getUniformLocation(boardShaderProgram, 'uColour'),
-      uModelViewProjection: gl.getUniformLocation(boardShaderProgram, 'uModelViewProjection'),
-    },
-    attributes: {
-      aVertexPosition: gl.getAttribLocation(boardShaderProgram, 'aVertexPosition'),
-      aTexCoord: gl.getAttribLocation(boardShaderProgram, 'aTexCoord'),
-    }
-  };
-
-  const pieceShaderProgram = buildShaderProgram(gl, [
-    {type: gl.VERTEX_SHADER, source: pieceVertexShader},
-    {type: gl.FRAGMENT_SHADER, source: pieceFragmentShader},
-  ]);
-  const pieceShader = {
-    program: pieceShaderProgram,
-    uniforms: {
-      uGlobalColor: gl.getUniformLocation(pieceShaderProgram, 'uGlobalColor'),
-      uLightNormal0: gl.getUniformLocation(pieceShaderProgram, 'uLightNormal0'),
-      uLightNormal1: gl.getUniformLocation(pieceShaderProgram, 'uLightNormal1'),
-      uEyePosition: gl.getUniformLocation(pieceShaderProgram, 'uEyePosition'),
-      uModelViewProjection: gl.getUniformLocation(pieceShaderProgram, 'uModelViewProjection'),
-    },
-    attributes: {
-      aVertexPosition: gl.getAttribLocation(pieceShaderProgram, 'aVertexPosition'),
-      aVertexNormal: gl.getAttribLocation(pieceShaderProgram, 'aVertexNormal'),
-    },
-  };
-
-  const board = (() => {
-    const z = 0;
-    // TODO - use boardConfig.worldDim
-    const vertexArray = new Float32Array([
-      // triangle 1
-      -0.5, 0.5, z, 0.5, 0.5, z, 0.5, -0.5, z,
-      // triangle 2
-      -0.5, 0.5, z, 0.5, -0.5, z, -0.5, -0.5, z,
-    ]);
-    const vertexBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, vertexArray, gl.STATIC_DRAW);
-
-    const texCoordArray = new Float32Array([
-      0.0, 1.0, 1.0, 1.0, 1.0, 0.0,
-      0.0, 1.0, 1.0, 0.0, 0.0, 0.0,
-    ]);
-    const texCoordBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, texCoordArray, gl.STATIC_DRAW);
-    return {
-      vertexBuffer,
-      vertexNumComponents: 3,
-      vertexCount: vertexArray.length / 3,
-      texCoordBuffer,
-    };
-  })();
-
-  const tex_board = uploadTexture(gl, makeTextureImage(boardConfig));
-  const tex_pieceshadow = uploadTexture(gl, makeTextureImagePieceShadow());
-
-  const sphere = (() => {
-    const {vertexArray, normalsArray, indicesArray, numTriangles} = makePieceMesh();
-    const vertexBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, vertexArray, gl.STATIC_DRAW);
-    const normalsBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, normalsBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, normalsArray, gl.STATIC_DRAW);
-    const elementBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, elementBuffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indicesArray, gl.STATIC_DRAW);
-    return {
-      vertexBuffer,
-      vertexNumComponents: 3,
-      vertexCount: vertexArray.length / 3,
-      normalsBuffer,
-      elementBuffer,
-      numTriangles,
-    };
-  })();
-
-  const renderState = {
+  return {
     glCanvas,
     gl,
-    boardShader,
-    pieceShader,
-    tex_board,
-    tex_pieceshadow,
-    board,
-    sphere,
+    boardShader: uploadShader(gl, {
+      vertex: boardVertexShader,
+      fragment: boardFragmentShader,
+      uniforms: ['uTex', 'uColour', 'uModelViewProjection'],
+      attributes: ['aVertexPosition', 'aTexCoord'],
+    }),
+    pieceShader: uploadShader(gl, {
+      vertex: pieceVertexShader,
+      fragment: pieceFragmentShader,
+      uniforms: ['uGlobalColor', 'uLightNormal0', 'uLightNormal1', 'uEyePosition', 'uModelViewProjection'],
+      attributes: ['aVertexPosition', 'aVertexNormal'],
+    }),
+    tex_board: uploadTexture(gl, makeTextureImage(boardConfig)),
+    tex_pieceshadow: uploadTexture(gl, makeTextureImagePieceShadow()),
+    board: uploadMesh(gl, {
+      // TODO - use boardConfig.worldDim?
+      vertexArray: new Float32Array([
+        // triangle 1
+        -0.5, 0.5, 0, 0.5, 0.5, 0, 0.5, -0.5, 0,
+        // triangle 2
+        -0.5, 0.5, 0, 0.5, -0.5, 0, -0.5, -0.5, 0,
+      ]),
+      texCoordArray: new Float32Array([
+        0.0, 1.0, 1.0, 1.0, 1.0, 0.0,
+        0.0, 1.0, 1.0, 0.0, 0.0, 0.0,
+      ]),
+    }),
+    sphere: uploadMesh(gl, makePieceMesh()),
   };
+}
 
-  return renderState;
+function uploadShader(gl, {vertex, fragment, uniforms, attributes}) {
+  const program = gl.createProgram();
+
+  for (let [type, source] of [
+    [gl.VERTEX_SHADER, vertex],
+    [gl.FRAGMENT_SHADER, fragment],
+  ]) {
+    const shader = gl.createShader(type);
+
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+      console.log(`Error compiling ${type === gl.VERTEX_SHADER ? 'vertex' : 'fragment'} shader:`);
+      console.log(gl.getShaderInfoLog(shader));
+      throw new Error('shader compilation failed');
+    }
+
+    gl.attachShader(program, shader);
+  }
+
+  gl.linkProgram(program);
+
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    console.log('Error linking shader program:');
+    console.log(gl.getProgramInfoLog(program));
+    throw new Error('shader link failed');
+  }
+
+  return {
+    program,
+    uniforms: uniforms.reduce((pv, uniformName) => Object.assign(pv, {
+      [uniformName]: gl.getUniformLocation(program, uniformName),
+    }), {}),
+    attributes: attributes.reduce((pv, attributeName) => Object.assign(pv, {
+      [attributeName]: gl.getAttribLocation(program, attributeName),
+    }), {}),
+  };
 }
 
 function uploadTexture(gl, {w, h, pixels, fmt}) {
@@ -135,37 +107,36 @@ function uploadTexture(gl, {w, h, pixels, fmt}) {
   return tex;
 }
 
-function buildShaderProgram(gl, shaderInfo) {
-  const program = gl.createProgram();
+function uploadMesh(gl, {vertexArray, normalArray, texCoordArray, elementArray}) {
+  const vertexBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, vertexArray, gl.STATIC_DRAW);
 
-  shaderInfo.forEach(function (desc) {
-    const shader = compileShader(gl, desc.source, desc.type);
-
-    if (shader) {
-      gl.attachShader(program, shader);
-    }
-  });
-
-  gl.linkProgram(program);
-
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    console.log('Error linking shader program:');
-    console.log(gl.getProgramInfoLog(program));
+  const normalBuffer = normalArray && gl.createBuffer() || null;
+  if (normalBuffer !== null) {
+    gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, normalArray, gl.STATIC_DRAW);
   }
 
-  return program;
-}
-
-function compileShader(gl, source, type) {
-  const shader = gl.createShader(type);
-
-  gl.shaderSource(shader, source);
-  gl.compileShader(shader);
-
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    console.log(`Error compiling ${type === gl.VERTEX_SHADER ? 'vertex' : 'fragment'} shader:`);
-    console.log(gl.getShaderInfoLog(shader));
+  const texCoordBuffer = texCoordArray && gl.createBuffer() || null;
+  if (texCoordBuffer !== null) {
+    gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, texCoordArray, gl.STATIC_DRAW);
   }
 
-  return shader;
+  const elementBuffer = elementArray && gl.createBuffer() || null;
+  if (elementBuffer !== null) {
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, elementBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, elementArray, gl.STATIC_DRAW);
+  }
+
+  return {
+    vertexBuffer,
+    vertexNumComponents: 3,
+    vertexCount: vertexArray.length / 3,
+    normalBuffer,
+    texCoordBuffer,
+    elementBuffer,
+    numTriangles: elementArray ? elementArray.length / 3 : 0,
+  };
 }
