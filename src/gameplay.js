@@ -112,71 +112,32 @@ class GameState {
   // coords passed are the new piece placed (we only need to check around that)
   // TODO - also check if the board is full (draw)
   _checkVictory(gx, gy, colour) {
-    // check horizontal
-    let num = 0;
-    for (let i = -4; i <= 5; i++) {
-      const value = this.getGridState(gx + i, gy);
-      if (value !== null && value.colour === colour) {
-        num++;
-      } else if (num >= 5) {
-        i--;
-        while (num-- > 0) {
-          this.getGridState(gx + i - num, gy).isGlowing = true;
+    const check = (xstep, ystep) => {
+      let num = 0;
+      for (let i = -4; i <= 5; i++) {
+        const value = this.getGridState(
+          gx + i * xstep,
+          gy + i * ystep,
+        );
+        if (value !== null && value.colour === colour) {
+          num++;
+        } else if (num >= 5) {
+          i--;
+          while (num-- > 0) {
+            this.getGridState(
+              gx + (i - num) * xstep,
+              gy + (i - num) * ystep,
+            ).isGlowing = true;
+          }
+          return true;
+        } else {
+          num = 0;
         }
-        return true;
-      } else {
-        num = 0;
       }
-    }
-    // check vertical
-    num = 0;
-    for (let i = -4; i <= 5; i++) {
-      const value = this.getGridState(gx, gy + i);
-      if (value !== null && value.colour === colour) {
-        num++;
-      } else if (num >= 5) {
-        i--;
-        while (num-- > 0) {
-          this.getGridState(gx, gy + i - num).isGlowing = true;
-        }
-        return true;
-      } else {
-        num = 0;
-      }
-    }
-    // check bottomleft to topright
-    num = 0;
-    for (let i = -4; i <= 5; i++) {
-      const value = this.getGridState(gx + i, gy + i);
-      if (value !== null && value.colour === colour) {
-        num++;
-      } else if (num >= 5) {
-        i--;
-        while (num-- > 0) {
-          this.getGridState(gx + i - num, gy + i - num).isGlowing = true;
-        }
-        return true;
-      } else {
-        num = 0;
-      }
-    }
-    // check bottomright to topleft
-    num = 0;
-    for (let i = -4; i <= 5; i++) {
-      const value = this.getGridState(gx - i, gy + i);
-      if (value !== null && value.colour === colour) {
-        num++;
-      } else if (num >= 5) {
-        i--;
-        while (num-- > 0) {
-          this.getGridState(gx - (i - num), gy + i - num).isGlowing = true;
-        }
-        return true;
-      } else {
-        num = 0;
-      }
-    }
-
-    return false;
+    };
+    return check(1, 0) || // left to right
+           check(0, 1) || // top to bottom
+           check(1, 1) || // bottom-left to top-right
+           check(-1, 1); // bottom-right to top-left
   }
 }
