@@ -36,10 +36,8 @@ function getGridPos(wx, wy) {
   const marginFrac = boardConfig.imageMargin / boardConfig.imageDim;
   const d0 = boardConfig.worldDim * -0.5 + marginFrac;
   const d1 = boardConfig.worldDim * 0.5 - marginFrac;
-  let gridx = (boardConfig.numLines - 1) * (wx - d0) / (d1 - d0);
-  let gridy = (boardConfig.numLines - 1) * (wy - d0) / (d1 - d0);
-  gridx = Math.round(gridx);
-  gridy = Math.round(gridy);
+  const gridx = Math.round((boardConfig.numLines - 1) * (wx - d0) / (d1 - d0));
+  const gridy = Math.round((boardConfig.numLines - 1) * (wy - d0) / (d1 - d0));
   if (gridx >= 0 && gridy >= 0 && gridx < boardConfig.numLines && gridy < boardConfig.numLines) {
     return [gridx, gridy];
   } else {
@@ -58,22 +56,8 @@ function getWorldPosFromGridPos(gridx, gridy) {
   return [mx, my];
 }
 
-function getViewMatrix(cameraAngle) {
-  const viewmtx = mat4.create();
-  if (cameraAngle === 'default') {
-    mat4.translate(viewmtx, viewmtx, vec3.fromValues(0, -0.57, 1.1));
-    mat4.rotate(viewmtx, viewmtx, 25 * Math.PI / 180.0, vec3.fromValues(1, 0, 0));
-  } else if (cameraAngle === 'straight-down') {
-    mat4.translate(viewmtx, viewmtx, vec3.fromValues(0, 0.03, 1.3));
-  } else {
-    mat4.translate(viewmtx, viewmtx, vec3.fromValues(0, -0.85, 0.4));
-    mat4.rotate(viewmtx, viewmtx, 60 * Math.PI / 180.0, vec3.fromValues(1, 0, 0));
-  }
-  return viewmtx;
-}
-
 // get the position of the mouse in worldspace, on the board plane
-function unprojectMousePos(gameState, {glCanvas, viewmtx, proj}) {
+function unprojectMousePos({viewmtx, proj}, [mx, my]) {
   // math from http://antongerdelan.net/opengl/raycasting.html
 
   // get starting point of mouse "ray" (eye pos in worldspace)
@@ -81,9 +65,7 @@ function unprojectMousePos(gameState, {glCanvas, viewmtx, proj}) {
   mat4.getTranslation(eyePos, viewmtx);
 
   // get direction of mouse ray
-  const mx = gameState.mousePos[0] / (glCanvas.width - 1);
-  const my = 1 - gameState.mousePos[1] / (glCanvas.height - 1);
-  const ray_clip = vec4.fromValues(mx * 2 - 1, my * 2 - 1, -1, 1);
+  const ray_clip = vec4.fromValues(mx * 2 - 1, (1 - my) * 2 - 1, -1, 1);
   // transform from clipspace to camera space
   const invProj = mat4.create();
   mat4.invert(invProj, proj);

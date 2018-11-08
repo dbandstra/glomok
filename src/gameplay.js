@@ -16,7 +16,16 @@ class GameState {
   _calcViewInfo({cameraAngle, glCanvas}) {
     const proj = getProjectionMatrix({glCanvas});
 
-    const viewmtx = getViewMatrix(cameraAngle);
+    const viewmtx = mat4.create();
+    if (cameraAngle === 'default') {
+      mat4.translate(viewmtx, viewmtx, vec3.fromValues(0, -0.57, 1.1));
+      mat4.rotate(viewmtx, viewmtx, 25 * Math.PI / 180.0, vec3.fromValues(1, 0, 0));
+    } else if (cameraAngle === 'straight-down') {
+      mat4.translate(viewmtx, viewmtx, vec3.fromValues(0, 0.03, 1.3));
+    } else {
+      mat4.translate(viewmtx, viewmtx, vec3.fromValues(0, -0.85, 0.4));
+      mat4.rotate(viewmtx, viewmtx, 60 * Math.PI / 180.0, vec3.fromValues(1, 0, 0));
+    }
 
     const invviewmtx = mat4.create();
     mat4.invert(invviewmtx, viewmtx);
@@ -59,28 +68,20 @@ class GameState {
   }
 
   _onMouseMove(glCanvas, [mx, my]) {
-    const commands = [];
+    const old_gridPos = this.mouse_gridPos;
 
     this.mousePos = [mx, my];
+    this.mouse_gridPos = getGridPos(...unprojectMousePos(this.viewInfo, [
+      this.mousePos[0] / (glCanvas.width - 1),
+      this.mousePos[1] / (glCanvas.height - 1),
+    ]));
 
-    const c = unprojectMousePos(this, {
-      glCanvas,
-      ...this.viewInfo,
-    });
-
-    const old_x = this.mouse_gridPos && this.mouse_gridPos[0];
-    const old_y = this.mouse_gridPos && this.mouse_gridPos[1];
-
-    this.mouse_gridPos = getGridPos(c[0], c[1]);
-
-    const new_x = this.mouse_gridPos && this.mouse_gridPos[0];
-    const new_y = this.mouse_gridPos && this.mouse_gridPos[1];
-
-    if (old_x !== new_x || old_y !== new_y) {
-      commands.push(['repaint']);
+    if ((old_gridPos && old_gridPos[0]) !== (this.mouse_gridPos && this.mouse_gridPos[0]) ||
+        (old_gridPos && old_gridPos[1]) !== (this.mouse_gridPos && this.mouse_gridPos[1])) {
+      return [['repaint']];
+    } else {
+      return [];
     }
-
-    return commands;
   }
 
   _onClick() {
