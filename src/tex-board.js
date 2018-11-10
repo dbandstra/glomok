@@ -1,4 +1,4 @@
-function makeTextureImage(boardConfig) {
+export function makeTextureImage(boardConfig) {
   const w = boardConfig.imageDim;
   const h = boardConfig.imageDim;
   const margin = boardConfig.imageMargin; // number of pixels around the grid (actually distance to centre of outer grid line)

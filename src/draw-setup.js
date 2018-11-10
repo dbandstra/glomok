@@ -1,4 +1,9 @@
-function drawSetup(glCanvas, gl) {
+import {makePieceMesh} from './mesh-piece';
+import {boardFragmentShader, boardVertexShader, pieceFragmentShader, pieceVertexShader} from './shaders';
+import {makeTextureImage} from './tex-board';
+import {makeTextureImagePieceShadow} from './tex-pieceshadow';
+
+export function drawSetup(glCanvas, gl, boardConfig) {
   return {
     glCanvas,
     gl,

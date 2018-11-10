@@ -1,10 +1,15 @@
-class GameState {
-  constructor({cameraAngle, glCanvas}) {
+import {mat4, vec3} from 'gl-matrix';
+
+import {getGridPos, getProjectionMatrix, unprojectMousePos} from './view';
+
+export class GameState {
+  constructor({cameraAngle, glCanvas, boardConfig}) {
     this.viewInfo = this._calcViewInfo({cameraAngle, glCanvas});
     this.mousePos = [0, 0];
     this.mouse_gridPos = null;
     this.nextPieceColour = 'black';
     this.status = 'new-game'; // other values: 'in-progress', 'game-over'
+    this.boardConfig = boardConfig;
 
     this.gridState = new Array(boardConfig.numLines * boardConfig.numLines);
 
@@ -42,7 +47,7 @@ class GameState {
   }
 
   getGridState(gx, gy) {
-    return this.gridState[gy * boardConfig.numLines + gx] || null;
+    return this.gridState[gy * this.boardConfig.numLines + gx] || null;
   }
 
   update(message, ...params) {
@@ -64,14 +69,14 @@ class GameState {
   }
 
   _setGridState(gx, gy, value) {
-    this.gridState[gy * boardConfig.numLines + gx] = value;
+    this.gridState[gy * this.boardConfig.numLines + gx] = value;
   }
 
   _onMouseMove(glCanvas, [mx, my]) {
     const old_gridPos = this.mouse_gridPos;
 
     this.mousePos = [mx, my];
-    this.mouse_gridPos = getGridPos(...unprojectMousePos(this.viewInfo, [
+    this.mouse_gridPos = getGridPos(this.boardConfig, ...unprojectMousePos(this.viewInfo, [
       this.mousePos[0] / (glCanvas.width - 1),
       this.mousePos[1] / (glCanvas.height - 1),
     ]));

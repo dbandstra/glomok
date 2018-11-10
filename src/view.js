@@ -1,4 +1,6 @@
-function getProjectionMatrix({glCanvas}) {
+import {mat4, vec3, vec4} from 'gl-matrix';
+
+export function getProjectionMatrix({glCanvas}) {
   const fovy = 45 * Math.PI / 180.0;
   const far = 1000;
   const near = 0.01;
@@ -32,7 +34,7 @@ function getProjectionMatrix({glCanvas}) {
 
 // take world coordinates and convert to grid (0-14) inclusive
 // or null if off the grid
-function getGridPos(wx, wy) {
+export function getGridPos(boardConfig, wx, wy) {
   const marginFrac = boardConfig.imageMargin / boardConfig.imageDim;
   const d0 = boardConfig.worldDim * -0.5 + marginFrac;
   const d1 = boardConfig.worldDim * 0.5 - marginFrac;
@@ -47,7 +49,7 @@ function getGridPos(wx, wy) {
 
 // gridx/gridy are positions from 0-14 inclusive
 // opposite of getGridPos
-function getWorldPosFromGridPos(gridx, gridy) {
+export function getWorldPosFromGridPos(boardConfig, gridx, gridy) {
   const marginFrac = boardConfig.imageMargin / boardConfig.imageDim;
   const d0 = boardConfig.worldDim * -0.5 + marginFrac;
   const d1 = boardConfig.worldDim * 0.5 - marginFrac;
@@ -57,7 +59,7 @@ function getWorldPosFromGridPos(gridx, gridy) {
 }
 
 // get the position of the mouse in worldspace, on the board plane
-function unprojectMousePos({viewmtx, proj}, [mx, my]) {
+export function unprojectMousePos({viewmtx, proj}, [mx, my]) {
   // math from http://antongerdelan.net/opengl/raycasting.html
 
   // get starting point of mouse "ray" (eye pos in worldspace)

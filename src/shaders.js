@@ -1,4 +1,4 @@
-const boardVertexShader = `
+export const boardVertexShader = `
 attribute vec3 aVertexPosition;
 attribute vec2 aTexCoord;
 
@@ -14,7 +14,7 @@ void main() {
 }
 `;
 
-const boardFragmentShader = `
+export const boardFragmentShader = `
 #ifdef GL_ES
   precision highp float;
 #endif
@@ -37,7 +37,7 @@ void main() {
 }
 `;
 
-const pieceVertexShader = `
+export const pieceVertexShader = `
 attribute vec3 aVertexPosition;
 attribute vec3 aVertexNormal;
 
@@ -53,7 +53,7 @@ void main() {
 }
 `;
 
-const pieceFragmentShader = `
+export const pieceFragmentShader = `
 #ifdef GL_ES
   precision highp float;
 #endif

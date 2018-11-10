@@ -1,4 +1,6 @@
-function makePieceMesh() {
+import {vec3} from 'gl-matrix';
+
+export function makePieceMesh() {
   const horz_radius = 0.03;
   const vert_radius = 0.01;
 

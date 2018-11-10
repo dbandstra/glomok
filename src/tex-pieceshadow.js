@@ -1,4 +1,4 @@
-function makeTextureImagePieceShadow() {
+export function makeTextureImagePieceShadow() {
   const w = 64;
   const h = 64;
   const pixels = new Uint8Array(w * h * 4);

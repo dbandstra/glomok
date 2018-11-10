@@ -1,3 +1,7 @@
+import {mat4, vec3, vec4} from 'gl-matrix';
+
+import {getWorldPosFromGridPos} from './view';
+
 // there are two light sources. they are infinitely distant, thus specified by
 // directions rather than by positions. the direction points "backward" (hence
 // the name "light normal").
@@ -101,7 +105,7 @@ function drawPiece(renderState, setupInfo, {colour, alpha}) {
   gl.drawElements(gl.TRIANGLES, 3 * sphere.numTriangles, gl.UNSIGNED_SHORT, 0);
 }
 
-function drawScene(renderState, gameState) {
+export function drawScene(renderState, gameState, boardConfig) {
   const {gl, glCanvas} = renderState;
   const {viewInfo} = gameState;
 
@@ -126,7 +130,7 @@ function drawScene(renderState, gameState) {
 
   // gridx/gridy are positions from 0-14 inclusive
   const getPieceModelMatrix = (gridx, gridy, z) => {
-    const [mx, my] = getWorldPosFromGridPos(gridx, gridy);
+    const [mx, my] = getWorldPosFromGridPos(boardConfig, gridx, gridy);
     const model = mat4.create();
     mat4.translate(model, model, vec3.fromValues(mx, my, z));
     // TODO - add on to board model matrix
