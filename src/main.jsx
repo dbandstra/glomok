@@ -1,9 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 
-import {drawScene} from './draw';
-import {drawSetup} from './draw-setup';
-import {GameState} from './gameplay';
+import GameComponent from './game';
 
 const boardConfig = {
   numLines: 15,
@@ -17,44 +15,18 @@ class App extends React.Component {
     super();
 
     this.state = {
+      gameStatus: 'new-game',
       blackPlayer: 'Player 1',
       whitePlayer: 'Player 2',
       wins: {
         'Player 1': 0,
         'Player 2': 0,
       },
-      message: '',
+      message: 'Player 1 - black',
       isMessageHighlighted: false,
       cameraAngle: 'default',
+      gameId: 1,
     };
-
-    this.canvasRef = React.createRef();
-  }
-
-  componentDidMount() {
-    const glCanvas = this.canvasRef.current;
-    const gl = glCanvas.getContext('webgl');
-
-    // try to make canvas full width of browser window
-    const fullWidth = (() => {
-      // https://stackoverflow.com/questions/3437786/get-the-size-of-the-screen-current-web-page-and-browser-window
-      const w = window;
-      const d = document;
-      const e = d.documentElement;
-      const g = d.getElementsByTagName('body')[0];
-      const x = w.innerWidth || e.clientWidth || g.clientWidth;
-      return x;
-    })();
-    if (fullWidth > glCanvas.width) {
-      glCanvas.width = fullWidth;
-    }
-
-    this.renderState = drawSetup(glCanvas, gl, boardConfig);
-
-    this.gameState = new GameState({cameraAngle: this.state.cameraAngle, glCanvas, boardConfig});
-
-    this.runCommands([['nextPlayer', 'black']]);
-    drawScene(this.renderState, this.gameState, boardConfig);
   }
 
   render() {
@@ -67,11 +39,13 @@ class App extends React.Component {
             { this.state.message }
           </div>
         </div>
-        <canvas className="glcanvas" width="700" height="600" ref={this.canvasRef}
-                onMouseMove={this.onCanvasMouseMove.bind(this)}
-                onMouseDown={this.onCanvasMouseDown.bind(this)}>
-          Canvas not supported.
-        </canvas>
+        <GameComponent
+          key={this.state.gameId}
+          boardConfig={boardConfig}
+          cameraAngle={this.state.cameraAngle}
+          onMoveMade={this.onMoveMade.bind(this)}
+          onGameOver={this.onGameOver.bind(this)}
+        />
         <div className="start-new-game-container">
           <button type="button" onClick={this.onClickStartNewGame.bind(this)}>
             Start new game
@@ -96,19 +70,9 @@ class App extends React.Component {
     );
   }
 
-  onCanvasMouseMove(event) {
-    const commands = this.gameState.update('onMouseMove', this.canvasRef.current, getNoPaddingNoBorderCanvasRelativeMousePosition(event));
-    this.runCommands(commands);
-  }
-
-  onCanvasMouseDown() {
-    const commands = this.gameState.update('onClick');
-    this.runCommands(commands);
-  }
-
   onClickStartNewGame() {
     let switchColours = true;
-    switch (this.gameState.getGameStatus()) {
+    switch (this.state.gameStatus) {
       case 'new-game':
         break;
       case 'in-progress':
@@ -117,129 +81,74 @@ class App extends React.Component {
         }
         switchColours = false;
       case 'game-over':
-        if (switchColours) {
-          this.setState((prevState) => {
-            const tmp = prevState.blackPlayer;
-            return {
-              blackPlayer: prevState.whitePlayer,
-              whitePlayer: tmp,
-            };
-          });
-        }
-        const glCanvas = this.canvasRef.current;
-        this.gameState = new GameState({cameraAngle: this.state.cameraAngle, glCanvas, boardConfig});
-        this.runCommands([
-          ['repaint'],
-          ['nextPlayer', 'black'],
-        ]);
+        this.setState((prevState) => ({
+          gameStatus: 'new-game',
+          gameId: prevState.gameId + 1,
+          blackPlayer: switchColours ? prevState.whitePlayer : prevState.blackPlayer,
+          whitePlayer: switchColours ? prevState.blackPlayer : prevState.whitePlayer,
+          message: (switchColours ? prevState.whitePlayer : prevState.blackPlayer) + ' - black',
+          isMessageHighlighted: false,
+        }));
         break;
     }
   }
 
   changeCameraAngle(event) {
-    const cameraAngle = event.target.value;
-    this.setState({cameraAngle});
-
-    const commands = this.gameState.update('setCameraAngle', {cameraAngle, glCanvas: this.canvasRef.current});
-    this.runCommands(commands);
+    this.setState({cameraAngle: event.target.value});
   }
 
-  runCommands(commands) {
-    const self = this;
-
-    const commandHandlers = {
-      repaint() {
-        window.requestAnimationFrame(() => {
-          drawScene(self.renderState, self.gameState, boardConfig);
-        });
-      },
-      nextPlayer(colour) {
-        switch (colour) {
-          case 'black':
-            self.setState({
-              message: self.state.blackPlayer + ' - black',
-              isMessageHighlighted: false,
-            });
-            break;
-          case 'white':
-            self.setState({
-              message: self.state.whitePlayer + ' - white',
-              isMessageHighlighted: false,
-            });
-            break;
-        }
-      },
-      incrementWinCount(colour) {
-        let playerId;
-        switch (colour) {
-          case 'black':
-            playerId = self.state.blackPlayer;
-            break;
-          case 'white':
-            playerId = self.state.whitePlayer;
-            break;
-          default:
-            throw new Error('bad colour');
-        }
-        switch (playerId) {
-          case 'Player 1':
-            self.setState((prevState) => ({
-              wins: {
-                ...prevState.wins,
-                [playerId]: prevState.wins[playerId] + 1,
-              },
-              message: 'Player 1 wins',
-              isMessageHighlighted: true,
-            }));
-            break;
-          case 'Player 2':
-            self.setState({
-              wins: {
-                ...prevState.wins,
-                [playerId]: prevState.wins[playerId] + 1,
-              },
-              message: 'Player 2 wins',
-              isMessageHighlighted: true,
-            });
-            break;
-          default:
-            throw new Error('bad playerid');
-        }
-      }
-    };
-
-    for (let [cmd, ...cmdArgs] of commands) {
-      // TODO don't repaint multiple times?
-      if (cmd in commandHandlers) {
-        commandHandlers[cmd](...cmdArgs);
-      }
+  onMoveMade(nextPieceColour) {
+    switch (nextPieceColour) {
+      case 'black':
+        this.setState((prevState) => ({
+          gameStatus: 'in-progress',
+          message: prevState.blackPlayer + ' - black',
+          isMessageHighlighted: false,
+        }));
+      case 'white':
+        this.setState((prevState) => ({
+          gameStatus: 'in-progress',
+          message: prevState.whitePlayer + ' - white',
+          isMessageHighlighted: false,
+        }));
     }
+  }
+
+  onGameOver(winnerColour) {
+    this.setState((prevState) => {
+      let playerId;
+      switch (winnerColour) {
+        case 'black': playerId = prevState.blackPlayer; break;
+        case 'white': playerId = prevState.whitePlayer; break;
+        default:
+          throw new Error('bad colour');
+      }
+      switch (playerId) {
+        case 'Player 1':
+          return {
+            gameStatus: 'game-over',
+            wins: {
+              ...prevState.wins,
+              [playerId]: prevState.wins[playerId] + 1,
+            },
+            message: 'Player 1 wins',
+            isMessageHighlighted: true,
+          };
+        case 'Player 2':
+          return {
+            gameStatus: 'game-over',
+            wins: {
+              ...prevState.wins,
+              [playerId]: prevState.wins[playerId] + 1,
+            },
+            message: 'Player 2 wins',
+            isMessageHighlighted: true,
+          };
+        default:
+          throw new Error('bad playerid');
+      }
+    });
   }
 };
 
 ReactDOM.render(<App />, document.getElementById('app'));
-
-/////////////////////////////
-
-// these two functions from here:
-// https://stackoverflow.com/questions/42309715/how-to-correctly-pass-mouse-coordinates-to-webgl
-function getRelativeMousePosition(event, target) {
-  target = target || event.target;
-  var rect = target.getBoundingClientRect();
-
-  return {
-    x: event.clientX - rect.left,
-    y: event.clientY - rect.top,
-  }
-}
-
-// assumes target or event.target is canvas
-function getNoPaddingNoBorderCanvasRelativeMousePosition(event, target) {
-  target = target || event.target;
-  const pos = getRelativeMousePosition(event, target);
-
-  return [
-    pos.x * target.width  / target.clientWidth,
-    pos.y * target.height / target.clientHeight,
-  ];
-}

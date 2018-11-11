@@ -152,7 +152,7 @@ export function drawScene(renderState, gameState, boardConfig) {
   gl.disable(gl.DEPTH_TEST);
   for (let gy = 0; gy < boardConfig.numLines; gy++) {
     for (let gx = 0; gx < boardConfig.numLines; gx++) {
-      const value = gameState.getGridState(gx, gy);
+      const value = gameState.getGridState(gameState.gridState, gx, gy);
       if (value !== null) {
         const mtx = getPieceModelMatrix(gx, gy, 0);
         if (value.isGlowing) {
@@ -175,7 +175,7 @@ export function drawScene(renderState, gameState, boardConfig) {
 
   for (let gy = 0; gy < boardConfig.numLines; gy++) {
     for (let gx = 0; gx < boardConfig.numLines; gx++) {
-      const value = gameState.getGridState(gx, gy);
+      const value = gameState.getGridState(gameState.gridState, gx, gy);
       if (value !== null) {
         const mtx = getPieceModelMatrix(gx, gy, 0.005);
         const setupInfo = drawModelSetup(viewInfo, mtx);
