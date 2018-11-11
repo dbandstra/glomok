@@ -6,30 +6,7 @@
     <link rel="stylesheet" href="style.css">
   </head>
   <body>
-    <div class="message-container">
-      <div id="message"></div>
-    </div>
-    <canvas id="glcanvas" width="700" height="600">
-      Canvas not supported.
-    </canvas>
-    <div class="start-new-game-container">
-      <button id="start-new-game-button" type="button">Start new game</button>
-    </div>
-    <div class="stats">
-      Wins:
-      <br>
-      Player 1: <span id="player-1-wins">0 wins</span>
-      <br>
-      Player 2: <span id="player-2-wins">0 wins</span>
-    </div>
-    <div class="camera-angle-container">
-      Camera angle:
-      <select id="camera-angle-control">
-        <option value="default">default</option>
-        <option value="straight-down">straight down</option>
-        <option value="too-steep">too steep</option>
-      </select>
-    </div>
+    <div id="app"></div>
     <script src="build/app.bundle.js"></script>
   </body>
 </html>

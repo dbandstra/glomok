@@ -5,8 +5,7 @@ features:
 * keyboard control
 * better mobile support (don't rely on mouse hover effect)
 * detect when mouse leaves canvas, and set mousepos to null
-* autosize to fill the browser window
-* webpack
+* update canvas width on resize
 * add a license
 * networked multiplayer (firebase?)
 * option to turn off board lines. it looks slicker that way

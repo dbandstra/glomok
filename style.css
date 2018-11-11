@@ -2,7 +2,7 @@ body {
   margin: 0;
 }
 
-#glcanvas {
+.glcanvas {
   display: block;
   margin: 0 auto;
 }
@@ -15,12 +15,12 @@ body {
   justify-content: center;
   pointer-events: none;
 }
-#message {
+.message {
   font-size: 32px;
   text-transform: uppercase;
   font-family: sans-serif;
 }
-#message.highlighted {
+.message.highlighted {
   background: black;
   color: white;
 }
