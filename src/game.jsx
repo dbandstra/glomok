@@ -12,6 +12,8 @@ export class GameComponent extends React.Component {
     super(props);
 
     this.state = {
+      blackName: null,
+      whiteName: null,
       nextPlayer: null, // 'black' | 'white' | null. null means game over
       winningPieces: null,
       ///////////////
@@ -35,7 +37,7 @@ export class GameComponent extends React.Component {
     this.canvasRef = React.createRef();
   }
 
-  onBackendUpdate({nextPlayer, gridState}) {
+  onBackendUpdate({blackName, whiteName, nextPlayer, gridState}) {
     this.setState((prevState) => {
       const winningPieces = prevState.winningPieces || [];
 
@@ -57,6 +59,8 @@ export class GameComponent extends React.Component {
       }
 
       return {
+        blackName,
+        whiteName,
         nextPlayer,
         gridState,
         winningPieces: winningPieces.length > 0 ? winningPieces : null,
@@ -90,11 +94,13 @@ export class GameComponent extends React.Component {
     this.setState({viewInfo});
 
     drawScene(this.renderState, {
-      ...this.state,
-      myColour: this.props.myColour,
       viewInfo,
-      getGridState: this.getGridState.bind(this),
-    }, this.props.boardConfig);
+      boardConfig: this.props.boardConfig,
+      myColour: this.props.myColour,
+      getColourAtGridPos: this.getGridState.bind(this, this.state.gridState),
+      winningPieces: this.state.winningPieces,
+      hoverGridPos: null,
+    });
 
     this.backend.init();
   }
@@ -118,10 +124,16 @@ export class GameComponent extends React.Component {
   repaint() {
     window.requestAnimationFrame(() => {
       drawScene(this.renderState, {
-        ...this.state,
+        viewInfo: this.state.viewInfo,
+        boardConfig: this.props.boardConfig,
         myColour: this.props.myColour,
-        getGridState: this.getGridState.bind(this),
-      }, this.props.boardConfig);
+        getColourAtGridPos: this.getGridState.bind(this, this.state.gridState),
+        winningPieces: this.state.winningPieces,
+        hoverGridPos:
+          this.state.nextPlayer === this.props.myColour && this.state.whiteName !== null
+            ? this.state.mouse_gridPos
+            : null,
+      });
     });
   }
 
@@ -131,6 +143,7 @@ export class GameComponent extends React.Component {
         <div>You are {this.props.myColour}.</div>
         <div>
           {this.state.nextPlayer === null ? 'The game is over.' :
+           this.state.whiteName === null ? 'Waiting for opponent to join.' :
            this.state.nextPlayer === this.props.myColour ? 'It\'s your turn.' :
            'It\'s your opponent\'s turn.'}
         </div>
@@ -212,7 +225,9 @@ export class GameComponent extends React.Component {
   }
 
   _onClick() {
-    if (this.state.mouse_gridPos === null || this.state.nextPlayer !== this.props.myColour) {
+    if (this.state.mouse_gridPos === null ||
+        this.state.nextPlayer !== this.props.myColour ||
+        this.state.whiteName === null) {
       return;
     }
 

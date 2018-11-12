@@ -103,12 +103,14 @@ class LobbyComponent extends React.Component {
         firebaseApp.database().ref('/').update({
           ['matches/' + key]: {
             // this table will be private
-            black: password,
-            white: null,
+            blackPassword: password,
+            whitePassword: null,
             lastMoveBy: null,
           },
           ['matchdata/' + key]: {
             name: this.state.newMatchName,
+            blackName: 'Somebody', // TODO - let user change his/her name
+            whiteName: null,
             nextPlayer: 'black',
           },
         }).then(() => {
@@ -127,8 +129,9 @@ class LobbyComponent extends React.Component {
   onClickJoin(matchKey) {
     const password = Math.random();
 
-    firebaseApp.database().ref('/matches/' + matchKey).update({
-      white: password,
+    firebaseApp.database().ref('/').update({
+      ['matches/' + matchKey + '/whitePassword']: password,
+      ['matchdata/' + matchKey + '/whiteName']: 'Somebody', // TODO - let user change his/her name
     }).then(() => {
       this.setState({
         matchParams: {

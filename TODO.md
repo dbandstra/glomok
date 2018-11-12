@@ -11,6 +11,8 @@ features:
 * some kind of (optional) animation when you reset the game. pieces fade out or sink through the board or something
 * option to throw the board if you lose (animate board and pieces flying)
 * dark mode
+* get firebase config out of the src folder?
+* a mode for testing firebase rules, where the client lets you attempt pretty much anything?
 
 ## Barebones build system for development
 Building is really slow with Webpack, especially on my laptop. I would like to have a barebones build system for development, taking advantage of the fact that most browsers support ES2015 imports etc. All it should need to do is transpile JSX. But I couldn't quite get it working.

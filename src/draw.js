@@ -114,9 +114,9 @@ function drawPiece(renderState, setupInfo, {colour, alpha}) {
   gl.drawElements(gl.TRIANGLES, 3 * sphere.numTriangles, gl.UNSIGNED_SHORT, 0);
 }
 
-export function drawScene(renderState, gameState, boardConfig) {
+export function drawScene(renderState, gameParams) {
   const {gl, glCanvas} = renderState;
-  const {viewInfo} = gameState;
+  const {viewInfo, boardConfig, myColour, getColourAtGridPos, winningPieces, hoverGridPos} = gameParams;
 
   gl.enable(gl.BLEND);
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -161,8 +161,8 @@ export function drawScene(renderState, gameState, boardConfig) {
   gl.disable(gl.DEPTH_TEST);
   for (let gy = 0; gy < boardConfig.numLines; gy++) {
     for (let gx = 0; gx < boardConfig.numLines; gx++) {
-      if (gameState.getGridState(gameState.gridState, gx, gy) !== null) {
-        const isGlowing = !!(gameState.winningPieces || []).find((wp) => wp[0] === gx && wp[1] === gy);
+      if (getColourAtGridPos(gx, gy) !== null) {
+        const isGlowing = !!(winningPieces || []).find((wp) => wp[0] === gx && wp[1] === gy);
         const mtx = getPieceModelMatrix(gx, gy, 0);
         if (isGlowing) {
           const scale = (0.03 / 0.5) * 2;
@@ -182,7 +182,7 @@ export function drawScene(renderState, gameState, boardConfig) {
 
   for (let gy = 0; gy < boardConfig.numLines; gy++) {
     for (let gx = 0; gx < boardConfig.numLines; gx++) {
-      const colour = gameState.getGridState(gameState.gridState, gx, gy);
+      const colour = getColourAtGridPos(gx, gy);
       if (colour !== null) {
         const mtx = getPieceModelMatrix(gx, gy, 0.005);
         const setupInfo = drawModelSetup(viewInfo, mtx);
@@ -195,14 +195,12 @@ export function drawScene(renderState, gameState, boardConfig) {
   }
 
   // place translucent tile at mouse pos -> snapped grid loc
-  if (gameState.nextPlayer === gameState.myColour) {
-    if (gameState.mouse_gridPos !== null) {
-      const mtx = getPieceModelMatrix(gameState.mouse_gridPos[0], gameState.mouse_gridPos[1], 0.005);
-      const setupInfo = drawModelSetup(viewInfo, mtx);
-      drawPiece(renderState, setupInfo, {
-        colour: colours[gameState.myColour],
-        alpha: 0.3,
-      });
-    }
+  if (hoverGridPos !== null) {
+    const mtx = getPieceModelMatrix(hoverGridPos[0], hoverGridPos[1], 0.005);
+    const setupInfo = drawModelSetup(viewInfo, mtx);
+    drawPiece(renderState, setupInfo, {
+      colour: colours[myColour],
+      alpha: 0.3,
+    });
   }
 }

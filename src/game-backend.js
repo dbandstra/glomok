@@ -27,7 +27,9 @@ export class GameBackend {
           }
         });
         this.listener({
-          nextPlayer: val.nextPlayer || null,
+          blackName: typeof val.blackName !== 'undefined' ? val.blackName : null,
+          whiteName: typeof val.whiteName !== 'undefined' ? val.whiteName : null,
+          nextPlayer: typeof val.nextPlayer !== 'undefined' ? val.nextPlayer : null,
           gridState,
         });
       }

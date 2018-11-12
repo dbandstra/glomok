@@ -1,7 +1,7 @@
-// TODO: don't allow a piece to be played if player 2 hasn't joined yet?
-
 type MatchData {
   name: Any | Null,
+  blackName: Any | Null,
+  whiteName: Any | Null,
   nextPlayer: Any | Null,
   board: Any | Null,
 }
@@ -13,9 +13,11 @@ path /matchdata {
 path /matchdata/{matchId} is MatchData {
   write() {
     prior(this).val() == null ? (
-      // creating
+      // creating (creator must be the black player)
       this.child('name').val() != null &&
       this.child('nextPlayer').val() == 'black' &&
+      this.child('blackName').val() != null &&
+      this.child('whiteName').val() == null &&
       this.child('board').val() == null &&
       // (must create /matches as well)
       prior(root).child('matches').child(matchId).val() == null &&
@@ -27,29 +29,52 @@ path /matchdata/{matchId} is MatchData {
       // updating (placing a piece)
       // game name cannot change
       this.child('name').val() == prior(this).child('name').val() &&
-      // the lastMoveBy field must be changed (to your password)
-      root.child('matches').child(matchId).child('lastMoveBy').val() != prior(root).child('matches').child(matchId).child('lastMoveBy').val() &&
+      // black player's name cannot change
+      this.child('blackName').val() == prior(this).child('blackName').val() &&
       (
-        root.child('matches').child(matchId).child('lastMoveBy').val() == root.child('matches').child(matchId).child('black').val()
-        ? (
-          // you are black - must set nextPlayer to white
-          prior(this).child('nextPlayer').val() == 'black' &&
+        (
+          // white player is joining:
+          // white name was added
+          prior(this).child('whiteName').val() == null &&
+          this.child('whiteName').val() != null &&
+          // nothing else changed
+          prior(this).child('nextPlayer').val() == this.child('nextPlayer').val() &&
+          prior(this).child('board').val() == this.child('board').val() &&
+          // white player joined in /matches as well
+          prior(root).child('matches').child(matchId).child('whitePassword').val() == null &&
+          root.child('matches').child(matchId).child('whitePassword').val() != null
+        ) || (
+          // this is a move being made:
+          // white player's name cannot change
+          this.child('whiteName').val() == prior(this).child('whiteName').val() &&
+          // both players must be present
+          root.child('matches').child(matchId).child('blackPassword').val() != null &&
+          root.child('matches').child(matchId).child('whitePassword').val() != null &&
+          // the lastMoveBy field must be changed (to your password)
+          root.child('matches').child(matchId).child('lastMoveBy').val() != prior(root).child('matches').child(matchId).child('lastMoveBy').val() &&
           (
-            this.child('nextPlayer').val() == 'white' ||
-            this.child('nextPlayer').val() == null
+            root.child('matches').child(matchId).child('lastMoveBy').val() == root.child('matches').child(matchId).child('blackPassword').val()
+            ? (
+              // you are black - must set nextPlayer to white
+              prior(this).child('nextPlayer').val() == 'black' &&
+              (
+                this.child('nextPlayer').val() == 'white' ||
+                this.child('nextPlayer').val() == null
+              )
+            ) :
+            root.child('matches').child(matchId).child('lastMoveBy').val() == root.child('matches').child(matchId).child('whitePassword').val()
+            ? (
+              // you are white - must set nextPlayer to black
+              prior(this).child('nextPlayer').val() == 'white' &&
+              (
+                this.child('nextPlayer').val() == 'black' ||
+                this.child('nextPlayer').val() == null
+              )
+            ) : (
+              // invalid password
+              false
+            )
           )
-        ) :
-        root.child('matches').child(matchId).child('lastMoveBy').val() == root.child('matches').child(matchId).child('white').val()
-        ? (
-          // you are white - must set nextPlayer to black
-          prior(this).child('nextPlayer').val() == 'white' &&
-          (
-            this.child('nextPlayer').val() == 'black' ||
-            this.child('nextPlayer').val() == null
-          )
-        ) : (
-          // invalid password
-          false
         )
       )
       // TODO - check this.child('board')
@@ -58,8 +83,8 @@ path /matchdata/{matchId} is MatchData {
 }
 
 type Match {
-  black: Any | Null, // black's password
-  white: Any | Null, // white's password
+  blackPassword: Any | Null,
+  whitePassword: Any | Null,
   lastMoveBy: Any | Null,
 }
 
@@ -69,9 +94,9 @@ path /matches/{matchId} is Match {
 
   write() {
     prior(this).val() == null ? (
-      // creating (creator must be 'black')
-      this.child('black').val() != null &&
-      this.child('white').val() == null &&
+      // creating (creator must be the black player)
+      this.child('blackPassword').val() != null &&
+      this.child('whitePassword').val() == null &&
       this.child('lastMoveBy').val() == null &&
       // (must create /matchdata as well)
       prior(root).child('matchdata').child(matchId).val() == null &&
@@ -83,21 +108,24 @@ path /matches/{matchId} is Match {
       // updating
       (
         // white player joining
-        prior(this).child('white').val() == null &&
-        this.child('white').val() != null &&
-        // ('black' and 'lastMoveBy' must stay the same)
-        this.child('black').val() == prior(this).child('black').val() &&
-        this.child('lastMoveBy').val() == prior(this).child('lastMoveBy').val()
+        prior(this).child('whitePassword').val() == null &&
+        this.child('whitePassword').val() != null &&
+        // ('blackPassword' and 'lastMoveBy' must stay the same)
+        this.child('blackPassword').val() == prior(this).child('blackPassword').val() &&
+        this.child('lastMoveBy').val() == prior(this).child('lastMoveBy').val() &&
+        // white player must be joining in /matchdata as well
+        prior(root).child('matchdata').child(matchId).child('whiteName').val() == null &&
+        root.child('matchdata').child(matchId).child('whiteName').val() != null
       ) || (
         // lastMoveBy is updated
         this.child('lastMoveBy').val() != prior(this).child('lastMoveBy').val() &&
         (
-          this.child('lastMoveBy').val() == this.child('black').val() ||
-          this.child('lastMoveBy').val() == this.child('white').val()
+          this.child('lastMoveBy').val() == this.child('blackPassword').val() ||
+          this.child('lastMoveBy').val() == this.child('whitePassword').val()
         ) &&
-        // ('black' and 'white' must stay the same)
-        this.child('black').val() == prior(this).child('black').val() &&
-        this.child('white').val() == prior(this).child('white').val()
+        // ('blackPassword' and 'whitePassword' must stay the same)
+        this.child('blackPassword').val() == prior(this).child('blackPassword').val() &&
+        this.child('whitePassword').val() == prior(this).child('whitePassword').val()
       )
     )
   }
