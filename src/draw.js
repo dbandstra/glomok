@@ -161,10 +161,10 @@ export function drawScene(renderState, gameState, boardConfig) {
   gl.disable(gl.DEPTH_TEST);
   for (let gy = 0; gy < boardConfig.numLines; gy++) {
     for (let gx = 0; gx < boardConfig.numLines; gx++) {
-      const value = gameState.getGridState(gameState.gridState, gx, gy);
-      if (value !== null) {
+      if (gameState.getGridState(gameState.gridState, gx, gy) !== null) {
+        const isGlowing = !!(gameState.winningPieces || []).find((wp) => wp[0] === gx && wp[1] === gy);
         const mtx = getPieceModelMatrix(gx, gy, 0);
-        if (value.isGlowing) {
+        if (isGlowing) {
           const scale = (0.03 / 0.5) * 2;
           mat4.scale(mtx, mtx, vec3.fromValues(scale, scale, scale));
         } else {
@@ -172,9 +172,7 @@ export function drawScene(renderState, gameState, boardConfig) {
           mat4.scale(mtx, mtx, vec3.fromValues(scale, scale, scale));
         }
         const setupInfo = drawModelSetup(viewInfo, mtx);
-        drawPieceShadow(renderState, setupInfo, {
-          isGlowing: value.isGlowing,
-        });
+        drawPieceShadow(renderState, setupInfo, {isGlowing});
       }
     }
   }
@@ -184,12 +182,12 @@ export function drawScene(renderState, gameState, boardConfig) {
 
   for (let gy = 0; gy < boardConfig.numLines; gy++) {
     for (let gx = 0; gx < boardConfig.numLines; gx++) {
-      const value = gameState.getGridState(gameState.gridState, gx, gy);
-      if (value !== null) {
+      const colour = gameState.getGridState(gameState.gridState, gx, gy);
+      if (colour !== null) {
         const mtx = getPieceModelMatrix(gx, gy, 0.005);
         const setupInfo = drawModelSetup(viewInfo, mtx);
         drawPiece(renderState, setupInfo, {
-          colour: colours[value.colour],
+          colour: colours[colour],
           alpha: 1.0,
         });
       }
@@ -197,12 +195,14 @@ export function drawScene(renderState, gameState, boardConfig) {
   }
 
   // place translucent tile at mouse pos -> snapped grid loc
-  if (gameState.nextPieceColour !== null && gameState.mouse_gridPos !== null) {
-    const mtx = getPieceModelMatrix(gameState.mouse_gridPos[0], gameState.mouse_gridPos[1], 0.005);
-    const setupInfo = drawModelSetup(viewInfo, mtx);
-    drawPiece(renderState, setupInfo, {
-      colour: colours[gameState.nextPieceColour],
-      alpha: 0.3,
-    });
+  if (gameState.nextPlayer === gameState.myColour) {
+    if (gameState.mouse_gridPos !== null) {
+      const mtx = getPieceModelMatrix(gameState.mouse_gridPos[0], gameState.mouse_gridPos[1], 0.005);
+      const setupInfo = drawModelSetup(viewInfo, mtx);
+      drawPiece(renderState, setupInfo, {
+        colour: colours[gameState.myColour],
+        alpha: 0.3,
+      });
+    }
   }
 }

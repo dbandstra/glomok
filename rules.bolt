@@ -1,0 +1,104 @@
+// TODO: don't allow a piece to be played if player 2 hasn't joined yet?
+
+type MatchData {
+  name: Any | Null,
+  nextPlayer: Any | Null,
+  board: Any | Null,
+}
+
+path /matchdata {
+  read() { true } // TODO
+}
+
+path /matchdata/{matchId} is MatchData {
+  write() {
+    prior(this).val() == null ? (
+      // creating
+      this.child('name').val() != null &&
+      this.child('nextPlayer').val() == 'black' &&
+      this.child('board').val() == null &&
+      // (must create /matches as well)
+      prior(root).child('matches').child(matchId).val() == null &&
+      root.child('matches').child(matchId).val() != null
+    ) : this.val() == null ? (
+      // deleting
+      false
+    ) : (
+      // updating (placing a piece)
+      // game name cannot change
+      this.child('name').val() == prior(this).child('name').val() &&
+      // the lastMoveBy field must be changed (to your password)
+      root.child('matches').child(matchId).child('lastMoveBy').val() != prior(root).child('matches').child(matchId).child('lastMoveBy').val() &&
+      (
+        root.child('matches').child(matchId).child('lastMoveBy').val() == root.child('matches').child(matchId).child('black').val()
+        ? (
+          // you are black - must set nextPlayer to white
+          prior(this).child('nextPlayer').val() == 'black' &&
+          (
+            this.child('nextPlayer').val() == 'white' ||
+            this.child('nextPlayer').val() == null
+          )
+        ) :
+        root.child('matches').child(matchId).child('lastMoveBy').val() == root.child('matches').child(matchId).child('white').val()
+        ? (
+          // you are white - must set nextPlayer to black
+          prior(this).child('nextPlayer').val() == 'white' &&
+          (
+            this.child('nextPlayer').val() == 'black' ||
+            this.child('nextPlayer').val() == null
+          )
+        ) : (
+          // invalid password
+          false
+        )
+      )
+      // TODO - check this.child('board')
+    )
+  }
+}
+
+type Match {
+  black: Any | Null, // black's password
+  white: Any | Null, // white's password
+  lastMoveBy: Any | Null,
+}
+
+path /matches/{matchId} is Match {
+  // no one can ever read the /matches table. passwords are stored here
+  read() { false }
+
+  write() {
+    prior(this).val() == null ? (
+      // creating (creator must be 'black')
+      this.child('black').val() != null &&
+      this.child('white').val() == null &&
+      this.child('lastMoveBy').val() == null &&
+      // (must create /matchdata as well)
+      prior(root).child('matchdata').child(matchId).val() == null &&
+      root.child('matchdata').child(matchId).val() != null
+    ) : this.val() == null ? (
+      // deleting
+      false
+    ) : (
+      // updating
+      (
+        // white player joining
+        prior(this).child('white').val() == null &&
+        this.child('white').val() != null &&
+        // ('black' and 'lastMoveBy' must stay the same)
+        this.child('black').val() == prior(this).child('black').val() &&
+        this.child('lastMoveBy').val() == prior(this).child('lastMoveBy').val()
+      ) || (
+        // lastMoveBy is updated
+        this.child('lastMoveBy').val() != prior(this).child('lastMoveBy').val() &&
+        (
+          this.child('lastMoveBy').val() == this.child('black').val() ||
+          this.child('lastMoveBy').val() == this.child('white').val()
+        ) &&
+        // ('black' and 'white' must stay the same)
+        this.child('black').val() == prior(this).child('black').val() &&
+        this.child('white').val() == prior(this).child('white').val()
+      )
+    )
+  }
+}

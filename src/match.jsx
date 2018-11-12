@@ -1,5 +1,4 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
 
 import GameComponent from './game';
 
@@ -10,7 +9,7 @@ const boardConfig = {
   worldDim: 1, // world diameter of board (including margin)
 };
 
-class App extends React.Component {
+class MatchComponent extends React.Component {
   constructor() {
     super();
 
@@ -151,4 +150,4 @@ class App extends React.Component {
   }
 };
 
-ReactDOM.render(<App />, document.getElementById('app'));
+export default MatchComponent;

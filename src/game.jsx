@@ -3,16 +3,20 @@ import React from 'react';
 
 import {drawScene} from './draw';
 import {drawSetup} from './draw-setup';
+import {GameBackend} from './game-backend';
+import {getNoPaddingNoBorderCanvasRelativeMousePosition} from './util';
 import {getGridPos, getProjectionMatrix, unprojectMousePos} from './view';
 
-class GameComponent extends React.Component {
+export class GameComponent extends React.Component {
   constructor(props) {
     super(props);
 
     this.state = {
+      nextPlayer: null, // 'black' | 'white' | null. null means game over
+      winningPieces: null,
+      ///////////////
       viewInfo: null, // set in componentDidMount()
       mouse_gridPos: null,
-      nextPieceColour: 'black',
       gridState: new Array(this.props.boardConfig.numLines * this.props.boardConfig.numLines),
     };
 
@@ -20,7 +24,46 @@ class GameComponent extends React.Component {
       this.state.gridState[i] = null;
     }
 
+    this.backend = new GameBackend({
+      boardConfig: this.props.boardConfig,
+      matchKey: this.props.matchKey,
+      myColour: this.props.myColour,
+      password: this.props.password,
+      listener: this.onBackendUpdate.bind(this),
+    })
+
     this.canvasRef = React.createRef();
+  }
+
+  onBackendUpdate({nextPlayer, gridState}) {
+    this.setState((prevState) => {
+      const winningPieces = prevState.winningPieces || [];
+
+      // call _checkVictory on all pieces that have newly appeared since the
+      // previous gridState. add 'winning pieces' to the existing winningPieces
+      // array (these are the pieces that will be highlighted in red)
+      for (let y = 0; y < this.props.boardConfig.numLines; y++) {
+        for (let x = 0; x < this.props.boardConfig.numLines; x++) {
+          const ofs = y * this.props.boardConfig.numLines + x;
+          if (prevState.gridState[ofs] !== gridState[ofs]) {
+            const newWinningPieces = this._checkVictory(gridState, x, y) || [];
+            newWinningPieces.forEach((nwp) => {
+              if (!winningPieces.find((wp) => wp[0] === nwp[0] && wp[1] === nwp[2])) {
+                winningPieces.push(nwp);
+              }
+            });
+          }
+        }
+      }
+
+      return {
+        nextPlayer,
+        gridState,
+        winningPieces: winningPieces.length > 0 ? winningPieces : null,
+      };
+    });
+
+    this.repaint();
   }
 
   componentDidMount() {
@@ -46,7 +89,18 @@ class GameComponent extends React.Component {
     const viewInfo = this._calcViewInfo({cameraAngle: this.props.cameraAngle, glCanvas});
     this.setState({viewInfo});
 
-    drawScene(this.renderState, {...this.state, viewInfo, getGridState: this.getGridState.bind(this)}, this.props.boardConfig);
+    drawScene(this.renderState, {
+      ...this.state,
+      myColour: this.props.myColour,
+      viewInfo,
+      getGridState: this.getGridState.bind(this),
+    }, this.props.boardConfig);
+
+    this.backend.init();
+  }
+
+  componentWillUnmount() {
+    this.backend.deinit();
   }
 
   componentWillReceiveProps(nextProps) {
@@ -63,18 +117,30 @@ class GameComponent extends React.Component {
 
   repaint() {
     window.requestAnimationFrame(() => {
-      drawScene(this.renderState, {...this.state, getGridState: this.getGridState.bind(this)}, this.props.boardConfig);
+      drawScene(this.renderState, {
+        ...this.state,
+        myColour: this.props.myColour,
+        getGridState: this.getGridState.bind(this),
+      }, this.props.boardConfig);
     });
   }
 
   render() {
     return (
-      <canvas className="glcanvas" width="700" height="600" ref={this.canvasRef}
-              onMouseMove={this.onCanvasMouseMove.bind(this)}
-              onMouseOut={this.onCanvasMouseOut.bind(this)}
-              onMouseDown={this.onCanvasMouseDown.bind(this)}>
-        Canvas not supported.
-      </canvas>
+      <>
+        <div>You are {this.props.myColour}.</div>
+        <div>
+          {this.state.nextPlayer === null ? 'The game is over.' :
+           this.state.nextPlayer === this.props.myColour ? 'It\'s your turn.' :
+           'It\'s your opponent\'s turn.'}
+        </div>
+        <canvas className="glcanvas" width="700" height="600" ref={this.canvasRef}
+                onMouseMove={this.onCanvasMouseMove.bind(this)}
+                onMouseOut={this.onCanvasMouseOut.bind(this)}
+                onMouseDown={this.onCanvasMouseDown.bind(this)}>
+          Canvas not supported.
+        </canvas>
+      </>
     );
   }
 
@@ -122,6 +188,8 @@ class GameComponent extends React.Component {
     return gridState[gy * this.props.boardConfig.numLines + gx] || null;
   }
 
+  // TODO - also need to repaint your mouseover tile, when the opponent just played and
+  // now it's your turn - even if you haven't moved the mouse
   _onMouseMove([mx, my]) {
     const glCanvas = this.canvasRef.current;
 
@@ -135,104 +203,65 @@ class GameComponent extends React.Component {
       mouse_gridPos: new_gridPos,
     });
 
-    if ((old_gridPos && old_gridPos[0]) !== (new_gridPos && new_gridPos[0]) ||
-        (old_gridPos && old_gridPos[1]) !== (new_gridPos && new_gridPos[1])) {
-      this.repaint();
+    if (this.state.nextPlayer === this.props.myColour) {
+      if ((old_gridPos && old_gridPos[0]) !== (new_gridPos && new_gridPos[0]) ||
+          (old_gridPos && old_gridPos[1]) !== (new_gridPos && new_gridPos[1])) {
+        this.repaint();
+      }
     }
   }
 
   _onClick() {
-    if (this.state.mouse_gridPos === null || this.state.nextPieceColour === null) {
+    if (this.state.mouse_gridPos === null || this.state.nextPlayer !== this.props.myColour) {
       return;
     }
 
-    const v = this.getGridState(this.state.gridState, this.state.mouse_gridPos[0], this.state.mouse_gridPos[1]);
+    const [gx, gy] = this.state.mouse_gridPos;
 
-    if (v === null) {
-      const [gx, gy] = this.state.mouse_gridPos;
-
+    if (this.getGridState(this.state.gridState, gx, gy) === null) {
+      // is this a winning move? if so we'll set nextPlayer to null
       const newGridState = [...this.state.gridState];
-      newGridState[gy * this.props.boardConfig.numLines + gx] = {
-        colour: this.state.nextPieceColour,
-        isGlowing: false,
-      };
+      newGridState[gy * this.props.boardConfig.numLines + gx] = this.props.myColour;
+      const isWinningMove = this._checkVictory(newGridState, gx, gy) !== null;
 
-      if (this._checkVictory(newGridState, gx, gy, this.state.nextPieceColour)) {
-        this.props.onGameOver(this.state.nextPieceColour);
-        this.setState({
-          gridState: newGridState,
-          nextPieceColour: null,
-        });
-      } else {
-        const nextPieceColour = this.state.nextPieceColour === 'white' ? 'black' : 'white';
-        this.props.onMoveMade(nextPieceColour);
-        this.setState({
-          gridState: newGridState,
-          nextPieceColour,
-        });
-      }
-
-      this.repaint();
+      this.backend.makeMove(gx, gy, isWinningMove);
     }
   }
 
   // check for victory condition.
   // coords passed are the new piece placed (we only need to check around that)
   // TODO - also check if the board is full (draw)
-  _checkVictory(gridState, gx, gy, colour) {
+  _checkVictory(gridState, gx, gy) {
+    const colour = this.getGridState(gridState, gx, gy);
+
     const check = (xstep, ystep) => {
       let num = 0;
       for (let i = -4; i <= 5; i++) {
-        const value = this.getGridState(gridState,
+        const hereColour = this.getGridState(gridState,
           gx + i * xstep,
           gy + i * ystep,
         );
-        if (value !== null && value.colour === colour) {
+        if (hereColour === colour) {
           num++;
         } else if (num >= 5) {
           i--;
+          const winningPieces = [];
           while (num-- > 0) {
-            this.getGridState(gridState,
+            winningPieces.push([
               gx + (i - num) * xstep,
               gy + (i - num) * ystep,
-            ).isGlowing = true;
+            ]);
           }
-          return true;
+          return winningPieces;
         } else {
           num = 0;
         }
       }
+      return null;
     };
     return check(1, 0) || // left to right
            check(0, 1) || // top to bottom
            check(1, 1) || // bottom-left to top-right
            check(-1, 1); // bottom-right to top-left
   }
-}
-
-export default GameComponent;
-
-/////////////////////////////
-
-// these two functions from here:
-// https://stackoverflow.com/questions/42309715/how-to-correctly-pass-mouse-coordinates-to-webgl
-function getRelativeMousePosition(event, target) {
-  target = target || event.target;
-  var rect = target.getBoundingClientRect();
-
-  return {
-    x: event.clientX - rect.left,
-    y: event.clientY - rect.top,
-  }
-}
-
-// assumes target or event.target is canvas
-function getNoPaddingNoBorderCanvasRelativeMousePosition(event, target) {
-  target = target || event.target;
-  const pos = getRelativeMousePosition(event, target);
-
-  return [
-    pos.x * target.width  / target.clientWidth,
-    pos.y * target.height / target.clientHeight,
-  ];
 }

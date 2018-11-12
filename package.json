@@ -2,10 +2,10 @@
   "name": "glomok",
   "version": "0.0.0",
   "description": "WebGL version of boardgame Omok (a.k.a. Gomoku)",
-  "main": "index.js",
   "scripts": {
     "build:dev": "webpack --mode=development",
     "build:prod": "webpack --mode=production",
+    "compile_rules": "firebase-bolt < rules.bolt > rules.json",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -23,6 +23,8 @@
     "@babel/preset-env": "^7.1.5",
     "@babel/preset-react": "^7.0.0",
     "babel-loader": "^8.0.4",
+    "firebase": "^5.5.8",
+    "firebase-bolt": "^0.8.4",
     "gl-matrix": "^2.8.1",
     "react": "^16.6.1",
     "react-dom": "^16.6.1",
