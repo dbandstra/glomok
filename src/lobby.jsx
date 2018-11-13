@@ -33,7 +33,7 @@ class LobbyComponent extends React.Component {
         this.setState({
           matches: Object.keys(val).map((key) => ({
             key,
-            name: val[key].name,
+            name: val[key]['info']['name'],
           })),
         });
       }
@@ -107,11 +107,12 @@ class LobbyComponent extends React.Component {
             whitePassword: null,
             lastMoveBy: null,
           },
-          ['matchdata/' + key]: {
+          ['matchdata/' + key + '/info']: {
             name: this.state.newMatchName,
             blackName: 'Somebody', // TODO - let user change his/her name
             whiteName: null,
             nextPlayer: 'black',
+            nextMoveId: 1,
           },
         }).then(() => {
           this.setState({
@@ -131,7 +132,7 @@ class LobbyComponent extends React.Component {
 
     firebaseApp.database().ref('/').update({
       ['matches/' + matchKey + '/whitePassword']: password,
-      ['matchdata/' + matchKey + '/whiteName']: 'Somebody', // TODO - let user change his/her name
+      ['matchdata/' + matchKey + '/info/whiteName']: 'Somebody', // TODO - let user change his/her name
     }).then(() => {
       this.setState({
         matchParams: {

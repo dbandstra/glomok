@@ -7,6 +7,8 @@ import {GameBackend} from './game-backend';
 import {getNoPaddingNoBorderCanvasRelativeMousePosition} from './util';
 import {getGridPos, getProjectionMatrix, unprojectMousePos} from './view';
 
+const SECURITY_TEST = true;
+
 export class GameComponent extends React.Component {
   constructor(props) {
     super(props);
@@ -37,7 +39,11 @@ export class GameComponent extends React.Component {
     this.canvasRef = React.createRef();
   }
 
-  onBackendUpdate({blackName, whiteName, nextPlayer, gridState}) {
+  // FIXME - gracefully handle pieces disappearing or changing... (so that we
+  // don't get winning piece glitches in SECURITY_TEST mode)
+  // unless that's another bug at work. it seems weird that i get glowing red
+  // pieces when clicking wildly even with a pretty empty board
+  onBackendUpdate({blackName, whiteName, nextPlayer, nextMoveId, gridState}) {
     this.setState((prevState) => {
       const winningPieces = prevState.winningPieces || [];
 
@@ -62,6 +68,7 @@ export class GameComponent extends React.Component {
         blackName,
         whiteName,
         nextPlayer,
+        nextMoveId,
         gridState,
         winningPieces: winningPieces.length > 0 ? winningPieces : null,
       };
@@ -130,7 +137,7 @@ export class GameComponent extends React.Component {
         getColourAtGridPos: this.getGridState.bind(this, this.state.gridState),
         winningPieces: this.state.winningPieces,
         hoverGridPos:
-          this.state.nextPlayer === this.props.myColour && this.state.whiteName !== null
+          SECURITY_TEST || (this.state.nextPlayer === this.props.myColour && this.state.whiteName !== null)
             ? this.state.mouse_gridPos
             : null,
       });
@@ -216,31 +223,44 @@ export class GameComponent extends React.Component {
       mouse_gridPos: new_gridPos,
     });
 
-    if (this.state.nextPlayer === this.props.myColour) {
-      if ((old_gridPos && old_gridPos[0]) !== (new_gridPos && new_gridPos[0]) ||
-          (old_gridPos && old_gridPos[1]) !== (new_gridPos && new_gridPos[1])) {
-        this.repaint();
+    if (!SECURITY_TEST) {
+      if (this.state.nextPlayer !== this.props.myColour || this.state.whiteName === null) {
+        return;
       }
+    }
+
+    if ((old_gridPos && old_gridPos[0]) !== (new_gridPos && new_gridPos[0]) ||
+        (old_gridPos && old_gridPos[1]) !== (new_gridPos && new_gridPos[1])) {
+      this.repaint();
     }
   }
 
   _onClick() {
-    if (this.state.mouse_gridPos === null ||
-        this.state.nextPlayer !== this.props.myColour ||
-        this.state.whiteName === null) {
+    if (this.state.mouse_gridPos === null) {
       return;
+    }
+    if (!SECURITY_TEST) {
+      if (this.state.nextPlayer !== this.props.myColour || this.state.whiteName === null) {
+        return;
+      }
     }
 
     const [gx, gy] = this.state.mouse_gridPos;
 
-    if (this.getGridState(this.state.gridState, gx, gy) === null) {
-      // is this a winning move? if so we'll set nextPlayer to null
-      const newGridState = [...this.state.gridState];
-      newGridState[gy * this.props.boardConfig.numLines + gx] = this.props.myColour;
-      const isWinningMove = this._checkVictory(newGridState, gx, gy) !== null;
-
-      this.backend.makeMove(gx, gy, isWinningMove);
+    if (!SECURITY_TEST) {
+      if (this.getGridState(this.state.gridState, gx, gy) !== null) {
+        return;
+      }
     }
+
+    // is this a winning move? if so we'll set nextPlayer to null
+    const cellIndex = gy * this.props.boardConfig.numLines + gx;
+
+    const newGridState = [...this.state.gridState];
+    newGridState[cellIndex] = this.props.myColour;
+    const isWinningMove = this._checkVictory(newGridState, gx, gy) !== null;
+
+    this.backend.makeMove(cellIndex, this.state.nextMoveId, isWinningMove);
   }
 
   // check for victory condition.

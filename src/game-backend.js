@@ -16,20 +16,17 @@ export class GameBackend {
       if (val) {
         const gridState = new Array(this.boardConfig.numLines * this.boardConfig.numLines);
         for (let i = 0; i < gridState.length; i++) {
-          gridState[i] = null;
+          const encodedCellIndex = encodeCellIndex(i);
+          gridState[i] = val['board'] && val['board'][encodedCellIndex] || null;
         }
-        Object.keys(val.board || {}).forEach((key) => {
-          const matches = key.match(/^(\d+)_(\d+)$/);
-          if (matches !== null) {
-            const x = +matches[1];
-            const y = +matches[2];
-            gridState[y * this.boardConfig.numLines + x] = val.board[key];
-          }
-        });
+        const getInfoField = (fieldName) => {
+          return val['info'] && typeof val['info'][fieldName] !== 'undefined' ? val['info'][fieldName] : null;
+        };
         this.listener({
-          blackName: typeof val.blackName !== 'undefined' ? val.blackName : null,
-          whiteName: typeof val.whiteName !== 'undefined' ? val.whiteName : null,
-          nextPlayer: typeof val.nextPlayer !== 'undefined' ? val.nextPlayer : null,
+          blackName: getInfoField('blackName'),
+          whiteName: getInfoField('whiteName'),
+          nextPlayer: getInfoField('nextPlayer'),
+          nextMoveId: getInfoField('nextMoveId'),
           gridState,
         });
       }
@@ -40,13 +37,31 @@ export class GameBackend {
     this.matchDataRef.off('value', this.matchDataCallback);
   }
 
-  makeMove(gx, gy, isWinningMove) {
-    firebaseApp.database().ref('/').update({
-      ['matchdata/' + this.matchKey + '/nextPlayer']:
+  makeMove(cellIndex, moveId, isWinningMove) {
+    const encodedCellIndex = encodeCellIndex(cellIndex);
+    const payload = {
+      ['matchdata/' + this.matchKey + '/board/' + encodedCellIndex]: this.myColour,
+      ['matchdata/' + this.matchKey + '/moves/' + moveId]: encodedCellIndex,
+      ['matchdata/' + this.matchKey + '/info/nextPlayer']:
         isWinningMove ? null :
         this.myColour === 'black' ? 'white' : 'black',
-      ['matchdata/' + this.matchKey + '/board/' + gx + '_' + gy]: this.myColour,
+      ['matchdata/' + this.matchKey + '/info/nextMoveId']: moveId + 1,
       ['matches/' + this.matchKey + '/lastMoveBy']: this.password,
-    });
+    };
+    console.log(payload);
+    firebaseApp.database().ref('/').update(payload);
   }
 }
+
+// encodes into a 15-base number, from '00' to 'ee'.
+function encodeCellIndex(cellIndex) {
+  let result = cellIndex.toString(15);
+  if (result.length === 1) {
+    result = '0' + result;
+  }
+  return result;
+}
+
+// function decodeCellIndex(encodedCellIndex) {
+//   return parseInt(encodedCellIndex, 15);
+// }
