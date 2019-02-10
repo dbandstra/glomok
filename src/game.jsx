@@ -11,7 +11,6 @@ class GameComponent extends React.Component {
 
     this.state = {
       viewInfo: null, // set in componentDidMount()
-      mousePos: [0, 0],
       mouse_gridPos: null,
       nextPieceColour: 'black',
       gridState: new Array(this.props.boardConfig.numLines * this.props.boardConfig.numLines),
@@ -72,6 +71,7 @@ class GameComponent extends React.Component {
     return (
       <canvas className="glcanvas" width="700" height="600" ref={this.canvasRef}
               onMouseMove={this.onCanvasMouseMove.bind(this)}
+              onMouseOut={this.onCanvasMouseOut.bind(this)}
               onMouseDown={this.onCanvasMouseDown.bind(this)}>
         Canvas not supported.
       </canvas>
@@ -80,6 +80,13 @@ class GameComponent extends React.Component {
 
   onCanvasMouseMove(event) {
     this._onMouseMove(getNoPaddingNoBorderCanvasRelativeMousePosition(event));
+  }
+
+  onCanvasMouseOut() {
+    if (this.state.mouse_gridPos !== null) {
+      this.setState({mouse_gridPos: null});
+      this.repaint();
+    }
   }
 
   onCanvasMouseDown() {
@@ -125,7 +132,6 @@ class GameComponent extends React.Component {
     ]));
 
     this.setState({
-      mousePos: [mx, my],
       mouse_gridPos: new_gridPos,
     });
 
