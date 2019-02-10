@@ -1,8 +1,9 @@
 import {makeBoardMesh, makeBoardSideMesh} from './meshes/board';
 import {makePieceMesh} from './meshes/piece';
-import {boardFragmentShader, boardVertexShader, pieceFragmentShader, pieceVertexShader} from './shaders';
-import {makeBoardTexture, makeBoardSideTexture} from './tex-board';
-import {makeTextureImagePieceShadow} from './tex-pieceshadow';
+import {boardFragmentShader, boardVertexShader} from './shaders/board';
+import {pieceFragmentShader, pieceVertexShader} from './shaders/piece';
+import {makeBoardTexture, makeBoardSideTexture} from './textures/board';
+import {makeTextureImagePieceShadow} from './textures/pieceshadow';
 
 export function drawSetup(glCanvas, gl, boardConfig) {
   return {
