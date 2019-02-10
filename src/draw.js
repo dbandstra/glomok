@@ -42,9 +42,9 @@ function drawModelSetup({proj, viewmtx, invviewmtx}, model) {
 }
 
 function _drawBoard(renderState, setupInfo, boardParams) {
-  const {gl, boardShader, board} = renderState;
+  const {gl, boardShader} = renderState;
   const {modelViewProjection} = setupInfo;
-  const {texture, colour} = boardParams;
+  const {mesh, texture, colour} = boardParams;
 
   gl.useProgram(boardShader.program);
 
@@ -54,26 +54,35 @@ function _drawBoard(renderState, setupInfo, boardParams) {
   gl.uniform4fv(boardShader.uniforms.uColour, colour);
   gl.uniformMatrix4fv(boardShader.uniforms.uModelViewProjection, false, modelViewProjection);
 
-  gl.bindBuffer(gl.ARRAY_BUFFER, board.vertexBuffer);
+  gl.bindBuffer(gl.ARRAY_BUFFER, mesh.vertexBuffer);
   gl.enableVertexAttribArray(boardShader.attributes.aVertexPosition);
-  gl.vertexAttribPointer(boardShader.attributes.aVertexPosition, board.vertexNumComponents, gl.FLOAT, false, 0, 0);
+  gl.vertexAttribPointer(boardShader.attributes.aVertexPosition, mesh.vertexNumComponents, gl.FLOAT, false, 0, 0);
 
-  gl.bindBuffer(gl.ARRAY_BUFFER, board.texCoordBuffer);
+  gl.bindBuffer(gl.ARRAY_BUFFER, mesh.texCoordBuffer);
   gl.enableVertexAttribArray(boardShader.attributes.aTexCoord);
   gl.vertexAttribPointer(boardShader.attributes.aTexCoord, 2, gl.FLOAT, false, 0, 0);
 
-  gl.drawArrays(gl.TRIANGLES, 0, board.vertexCount);
+  gl.drawArrays(gl.TRIANGLES, 0, mesh.vertexCount);
 }
 
-function drawBoard(renderState, setupInfo) {
+function drawBoard(renderState, setupInfo, showSide) {
   _drawBoard(renderState, setupInfo, {
+    mesh: renderState.board,
     texture: renderState.tex_board,
     colour: vec4.fromValues(1, 1, 1, 1),
   });
+  if (showSide) {
+    _drawBoard(renderState, setupInfo, {
+      mesh: renderState.boardside,
+      texture: renderState.tex_boardside,
+      colour: vec4.fromValues(1, 1, 1, 1),
+    });
+  }
 }
 
 function drawPieceShadow(renderState, setupInfo, {isGlowing}) {
   _drawBoard(renderState, setupInfo, {
+    mesh: renderState.board,
     texture: renderState.tex_pieceshadow,
     colour: isGlowing
       ? vec4.fromValues(1, 0, 0, 1)
@@ -146,7 +155,7 @@ export function drawScene(renderState, gameState, boardConfig) {
   gl.enable(gl.DEPTH_TEST);
   const mtx = mat4.create();
   const setupInfo = drawModelSetup(viewInfo, mtx);
-  drawBoard(renderState, setupInfo);
+  drawBoard(renderState, setupInfo, viewInfo.cameraAngle === 'too-steep');
 
   // draw shadows
   gl.disable(gl.DEPTH_TEST);

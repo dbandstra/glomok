@@ -1,6 +1,7 @@
-import {makePieceMesh} from './mesh-piece';
+import {makeBoardMesh, makeBoardSideMesh} from './meshes/board';
+import {makePieceMesh} from './meshes/piece';
 import {boardFragmentShader, boardVertexShader, pieceFragmentShader, pieceVertexShader} from './shaders';
-import {makeTextureImage} from './tex-board';
+import {makeBoardTexture, makeBoardSideTexture} from './tex-board';
 import {makeTextureImagePieceShadow} from './tex-pieceshadow';
 
 export function drawSetup(glCanvas, gl, boardConfig) {
@@ -19,21 +20,11 @@ export function drawSetup(glCanvas, gl, boardConfig) {
       uniforms: ['uGlobalColor', 'uLightNormal0', 'uLightNormal1', 'uEyePosition', 'uModelViewProjection'],
       attributes: ['aVertexPosition', 'aVertexNormal'],
     }),
-    tex_board: uploadTexture(gl, makeTextureImage(boardConfig)),
+    tex_board: uploadTexture(gl, makeBoardTexture(boardConfig)),
+    tex_boardside: uploadTexture(gl, makeBoardSideTexture(boardConfig)),
     tex_pieceshadow: uploadTexture(gl, makeTextureImagePieceShadow()),
-    board: uploadMesh(gl, {
-      // TODO - use boardConfig.worldDim?
-      vertexArray: new Float32Array([
-        // triangle 1
-        -0.5, 0.5, 0, 0.5, 0.5, 0, 0.5, -0.5, 0,
-        // triangle 2
-        -0.5, 0.5, 0, 0.5, -0.5, 0, -0.5, -0.5, 0,
-      ]),
-      texCoordArray: new Float32Array([
-        0.0, 1.0, 1.0, 1.0, 1.0, 0.0,
-        0.0, 1.0, 1.0, 0.0, 0.0, 0.0,
-      ]),
-    }),
+    board: uploadMesh(gl, makeBoardMesh(boardConfig)),
+    boardside: uploadMesh(gl, makeBoardSideMesh(boardConfig)),
     sphere: uploadMesh(gl, makePieceMesh()),
   };
 }

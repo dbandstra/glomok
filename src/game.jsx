@@ -107,6 +107,7 @@ class GameComponent extends React.Component {
       proj,
       viewmtx,
       invviewmtx,
+      cameraAngle,
     };
   }
 

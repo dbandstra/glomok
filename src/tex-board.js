@@ -1,4 +1,4 @@
-export function makeTextureImage(boardConfig) {
+export function makeBoardTexture(boardConfig) {
   const w = boardConfig.imageDim;
   const h = boardConfig.imageDim;
   const margin = boardConfig.imageMargin; // number of pixels around the grid (actually distance to centre of outer grid line)
@@ -99,5 +99,45 @@ export function makeTextureImage(boardConfig) {
       Math.round(margin + (h - 2 * margin) * y / (num_lines - 1)),
     );
   });
+  return {w, h, pixels, fmt: 'rgb'};
+}
+
+export function makeBoardSideTexture(boardConfig) {
+  const w = boardConfig.imageDim;
+  const h = boardConfig.imageDim / 32;
+  const border_width = 1;
+
+  const pixels = new Uint8Array(w * h * 3);
+  // background fill
+  for (let i = 0; i < w * h; i++) {
+    pixels[i * 3 + 0] = 238 * 0.8;
+    pixels[i * 3 + 1] = 209 * 0.8;
+    pixels[i * 3 + 2] = 165 * 0.8;
+  }
+  // outer border
+  for (let x = 0; x < w; x++) {
+    for (let y = 0; y < border_width; y++) {
+      for (let i = 0; i < 3; i++) {
+        pixels[(y * w + x) * 3 + i] = 0;
+      }
+    }
+    // for (let y = h - border_width; y < h; y++) {
+    //   for (let i = 0; i < 3; i++) {
+    //     pixels[(y * w + x) * 3 + i] = 0;
+    //   }
+    // }
+  }
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < border_width; x++) {
+      for (let i = 0; i < 3; i++) {
+        pixels[(y * w + x) * 3 + i] = 0;
+      }
+    }
+    for (let x = w - border_width; x < w; x++) {
+      for (let i = 0; i < 3; i++) {
+        pixels[(y * w + x) * 3 + i] = 0;
+      }
+    }
+  }
   return {w, h, pixels, fmt: 'rgb'};
 }
