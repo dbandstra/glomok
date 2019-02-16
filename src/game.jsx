@@ -1,11 +1,11 @@
 import {mat4, vec3} from 'gl-matrix';
 import React from 'react';
 
-import {drawScene} from './draw';
-import {drawSetup} from './draw-setup';
 import {GameBackend} from './game-backend';
 import {getNoPaddingNoBorderCanvasRelativeMousePosition} from './util';
-import {getGridPos, getProjectionMatrix, unprojectMousePos} from './view';
+import {drawScene} from './draw/draw';
+import {drawSetup} from './draw/draw-setup';
+import {getGridPos, getProjectionMatrix, unprojectMousePos} from './draw/view';
 
 const SECURITY_TEST = true;
 
