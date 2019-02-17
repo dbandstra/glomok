@@ -10,7 +10,7 @@ import {getGridPos, getProjectionMatrix, unprojectMousePos} from './draw/view';
 // if true, disable some client-side checks and let the backend block illegal moves
 const SECURITY_TEST = false;
 
-export class GameComponent extends React.Component {
+class GameComponent extends React.Component {
   constructor(props) {
     super(props);
 
@@ -305,3 +305,5 @@ export class GameComponent extends React.Component {
     this.backend.makeMove(cellIndex, this.state.backendState.nextMoveId, isWinningMove);
   }
 }
+
+export default GameComponent;

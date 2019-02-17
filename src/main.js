@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 
-import LobbyComponent from './lobby';
+import AppComponent from './app';
 
-ReactDOM.render(<LobbyComponent />, document.getElementById('app'));
+ReactDOM.render(<AppComponent />, document.getElementById('app'));

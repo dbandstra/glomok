@@ -1,24 +1,14 @@
 import React from 'react';
 
+import {BOARD_CONFIG} from './board-config';
 import {firebaseApp} from './firebase';
-import {GameComponent} from './game';
 import {GameBackendFirebase} from './game-backend-firebase';
-import {GameBackendLocal} from './game-backend-local';
-
-const boardConfig = {
-  numLines: 15,
-  imageDim: 512, // width/height of image
-  imageMargin: 32, // number of pixels around the grid
-  worldDim: 1, // world diameter of board (including margin)
-};
 
 class LobbyComponent extends React.Component {
   constructor() {
     super();
 
     this.state = {
-      cameraAngle: 'default',
-      matchParams: null,
       newMatchName: '',
       matches: [],
     };
@@ -46,54 +36,25 @@ class LobbyComponent extends React.Component {
   }
 
   render() {
-    if (this.state.matchParams !== null) {
-      return (
-        <GameComponent
-          key={this.state.matchParams.key}
-          backend={this.state.matchParams.backend}
-          isHotseat={this.state.matchParams.isHotseat}
-          myColour={this.state.matchParams.myColour}
-          boardConfig={boardConfig}
-          cameraAngle={this.state.cameraAngle}
-        />
-      );
-    } else {
-      return (
-        <div>
-          <h4>Play locally</h4>
-          <button onClick={this.onClickPlayLocally.bind(this)}>Start</button>
+    return (
+      <div>
+        <h3>Multiplayer lobby</h3>
+        <button onClick={this.props.onGoToMainMenu}>Back to main menu</button>
 
-          <h4>Create a match</h4>
-          Match name:
-          <input type="text" value={this.state.newMatchName} onChange={this.updateNewMatchName.bind(this)} />
-          <button onClick={this.onClickCreate.bind(this)}>Create</button>
+        <h4>Create a match</h4>
+        Match name:
+        <input type="text" value={this.state.newMatchName} onChange={this.updateNewMatchName.bind(this)} />
+        <button onClick={this.onClickCreate.bind(this)}>Create</button>
 
-          <h4>Join a match</h4>
-          {this.state.matches.map((match) =>
-            <div key={match.key}>
-              {match.name}
-              <button onClick={this.onClickJoin.bind(this, match.key)}>Join</button>
-            </div>
-          )}
-        </div>
-      );
-    }
-  }
-
-  onClickPlayLocally() {
-    const key = '' + Math.random();
-
-    const backend = new GameBackendLocal({
-      boardConfig,
-    });
-
-    this.setState({
-      matchParams: {
-        key,
-        backend,
-        isHotseat: true,
-      },
-    });
+        <h4>Join a match</h4>
+        {this.state.matches.map((match) =>
+          <div key={match.key}>
+            {match.name}
+            <button onClick={this.onClickJoin.bind(this, match.key)}>Join</button>
+          </div>
+        )}
+      </div>
+    );
   }
 
   updateNewMatchName(event) {
@@ -122,6 +83,8 @@ class LobbyComponent extends React.Component {
             nextMoveId: 1,
           },
         }).then(() => {
+          const boardConfig = BOARD_CONFIG;
+
           const backend = new GameBackendFirebase({
             boardConfig,
             matchKey: key,
@@ -129,7 +92,8 @@ class LobbyComponent extends React.Component {
             password,
           });
 
-          this.setState({
+          this.props.onEnterGame({
+            boardConfig,
             matchParams: {
               key,
               backend,
@@ -148,6 +112,8 @@ class LobbyComponent extends React.Component {
       ['matches/' + matchKey + '/whitePassword']: password,
       ['matchdata/' + matchKey + '/info/whiteName']: 'Somebody', // TODO - let user change his/her name
     }).then(() => {
+      const boardConfig = BOARD_CONFIG;
+
       const backend = new GameBackendFirebase({
         boardConfig,
         matchKey,
@@ -155,7 +121,8 @@ class LobbyComponent extends React.Component {
         password,
       });
 
-      this.setState({
+      this.props.onEnterGame({
+        boardConfig,
         matchParams: {
           key: matchKey,
           backend,
