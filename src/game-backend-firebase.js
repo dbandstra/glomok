@@ -1,15 +1,17 @@
 import {firebaseApp} from './firebase';
 
-export class GameBackend {
-  constructor({boardConfig, matchKey, myColour, password, listener}) {
+export class GameBackendFirebase {
+  constructor({boardConfig, matchKey, myColour, password}) {
     this.boardConfig = boardConfig;
     this.matchKey = matchKey;
     this.myColour = myColour;
     this.password = password;
-    this.listener = listener;
+    this.listener = null;
   }
 
-  init() {
+  init({listener}) {
+    this.listener = listener;
+
     this.matchDataRef = firebaseApp.database().ref('/matchdata/' + this.matchKey);
     this.matchDataCallback = this.matchDataRef.on('value', (snapshot) => {
       const val = snapshot.val();

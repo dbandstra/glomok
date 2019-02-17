@@ -1,13 +1,14 @@
 import {mat4, vec3} from 'gl-matrix';
 import React from 'react';
 
-import {GameBackend} from './game-backend';
+import {checkVictory} from './check-victory';
 import {getNoPaddingNoBorderCanvasRelativeMousePosition} from './util';
 import {drawScene} from './draw/draw';
 import {drawSetup} from './draw/draw-setup';
 import {getGridPos, getProjectionMatrix, unprojectMousePos} from './draw/view';
 
-const SECURITY_TEST = true;
+// if true, disable some client-side checks and let the backend block illegal moves
+const SECURITY_TEST = false;
 
 export class GameComponent extends React.Component {
   constructor(props) {
@@ -17,6 +18,7 @@ export class GameComponent extends React.Component {
       blackName: null,
       whiteName: null,
       nextPlayer: null, // 'black' | 'white' | null. null means game over
+      nextMoveId: null,
       winningPieces: null,
       ///////////////
       viewInfo: null, // set in componentDidMount()
@@ -28,13 +30,7 @@ export class GameComponent extends React.Component {
       this.state.gridState[i] = null;
     }
 
-    this.backend = new GameBackend({
-      boardConfig: this.props.boardConfig,
-      matchKey: this.props.matchKey,
-      myColour: this.props.myColour,
-      password: this.props.password,
-      listener: this.onBackendUpdate.bind(this),
-    })
+    this.backend = this.props.backend;
 
     this.canvasRef = React.createRef();
   }
@@ -43,20 +39,24 @@ export class GameComponent extends React.Component {
   // don't get winning piece glitches in SECURITY_TEST mode)
   // unless that's another bug at work. it seems weird that i get glowing red
   // pieces when clicking wildly even with a pretty empty board
-  onBackendUpdate({blackName, whiteName, nextPlayer, nextMoveId, gridState}) {
+  onBackendUpdate({blackName, whiteName, myColour, nextPlayer, nextMoveId, gridState}) {
     this.setState((prevState) => {
       const winningPieces = prevState.winningPieces || [];
 
-      // call _checkVictory on all pieces that have newly appeared since the
+      const boardConfig = this.props.boardConfig;
+
+      // call checkVictory on all pieces that have newly appeared since the
       // previous gridState. add 'winning pieces' to the existing winningPieces
       // array (these are the pieces that will be highlighted in red)
-      for (let y = 0; y < this.props.boardConfig.numLines; y++) {
-        for (let x = 0; x < this.props.boardConfig.numLines; x++) {
-          const ofs = y * this.props.boardConfig.numLines + x;
+      for (let gy = 0; gy < boardConfig.numLines; gy++) {
+        for (let gx = 0; gx < boardConfig.numLines; gx++) {
+          const ofs = gy * boardConfig.numLines + gx;
+
           if (prevState.gridState[ofs] !== gridState[ofs]) {
-            const newWinningPieces = this._checkVictory(gridState, x, y) || [];
+            const newWinningPieces = checkVictory({boardConfig, gridState, gx, gy}) || [];
+
             newWinningPieces.forEach((nwp) => {
-              if (!winningPieces.find((wp) => wp[0] === nwp[0] && wp[1] === nwp[2])) {
+              if (!winningPieces.find((wp) => wp[0] === nwp[0] && wp[1] === nwp[1])) {
                 winningPieces.push(nwp);
               }
             });
@@ -67,6 +67,7 @@ export class GameComponent extends React.Component {
       return {
         blackName,
         whiteName,
+        myColour,
         nextPlayer,
         nextMoveId,
         gridState,
@@ -103,13 +104,15 @@ export class GameComponent extends React.Component {
     drawScene(this.renderState, {
       viewInfo,
       boardConfig: this.props.boardConfig,
-      myColour: this.props.myColour,
+      myColour: this.state.myColour,
       getColourAtGridPos: this.getGridState.bind(this, this.state.gridState),
       winningPieces: this.state.winningPieces,
       hoverGridPos: null,
     });
 
-    this.backend.init();
+    this.backend.init({
+      listener: this.onBackendUpdate.bind(this),
+    });
   }
 
   componentWillUnmount() {
@@ -133,11 +136,11 @@ export class GameComponent extends React.Component {
       drawScene(this.renderState, {
         viewInfo: this.state.viewInfo,
         boardConfig: this.props.boardConfig,
-        myColour: this.props.myColour,
+        myColour: this.state.myColour,
         getColourAtGridPos: this.getGridState.bind(this, this.state.gridState),
         winningPieces: this.state.winningPieces,
         hoverGridPos:
-          SECURITY_TEST || (this.state.nextPlayer === this.props.myColour && this.state.whiteName !== null)
+          SECURITY_TEST || (this.state.nextPlayer === this.state.myColour && this.state.whiteName !== null)
             ? this.state.mouse_gridPos
             : null,
       });
@@ -147,11 +150,11 @@ export class GameComponent extends React.Component {
   render() {
     return (
       <>
-        <div>You are {this.props.myColour}.</div>
+        <div>You are {this.state.myColour}.</div>
         <div>
           {this.state.nextPlayer === null ? 'The game is over.' :
            this.state.whiteName === null ? 'Waiting for opponent to join.' :
-           this.state.nextPlayer === this.props.myColour ? 'It\'s your turn.' :
+           this.state.nextPlayer === this.state.myColour ? 'It\'s your turn.' :
            'It\'s your opponent\'s turn.'}
         </div>
         <canvas className="glcanvas" width="700" height="600" ref={this.canvasRef}
@@ -224,7 +227,7 @@ export class GameComponent extends React.Component {
     });
 
     if (!SECURITY_TEST) {
-      if (this.state.nextPlayer !== this.props.myColour || this.state.whiteName === null) {
+      if (this.state.nextPlayer !== this.state.myColour || this.state.whiteName === null) {
         return;
       }
     }
@@ -240,7 +243,7 @@ export class GameComponent extends React.Component {
       return;
     }
     if (!SECURITY_TEST) {
-      if (this.state.nextPlayer !== this.props.myColour || this.state.whiteName === null) {
+      if (this.state.nextPlayer !== this.state.myColour || this.state.whiteName === null) {
         return;
       }
     }
@@ -253,50 +256,18 @@ export class GameComponent extends React.Component {
       }
     }
 
-    // is this a winning move? if so we'll set nextPlayer to null
+    // is this a winning move?
     const cellIndex = gy * this.props.boardConfig.numLines + gx;
-
     const newGridState = [...this.state.gridState];
-    newGridState[cellIndex] = this.props.myColour;
-    const isWinningMove = this._checkVictory(newGridState, gx, gy) !== null;
+    newGridState[cellIndex] = this.state.myColour;
+
+    const isWinningMove = checkVictory({
+      boardConfig: this.props.boardConfig,
+      gridState: newGridState,
+      gx,
+      gy,
+    }) !== null;
 
     this.backend.makeMove(cellIndex, this.state.nextMoveId, isWinningMove);
-  }
-
-  // check for victory condition.
-  // coords passed are the new piece placed (we only need to check around that)
-  // TODO - also check if the board is full (draw)
-  _checkVictory(gridState, gx, gy) {
-    const colour = this.getGridState(gridState, gx, gy);
-
-    const check = (xstep, ystep) => {
-      let num = 0;
-      for (let i = -4; i <= 5; i++) {
-        const hereColour = this.getGridState(gridState,
-          gx + i * xstep,
-          gy + i * ystep,
-        );
-        if (hereColour === colour) {
-          num++;
-        } else if (num >= 5) {
-          i--;
-          const winningPieces = [];
-          while (num-- > 0) {
-            winningPieces.push([
-              gx + (i - num) * xstep,
-              gy + (i - num) * ystep,
-            ]);
-          }
-          return winningPieces;
-        } else {
-          num = 0;
-        }
-      }
-      return null;
-    };
-    return check(1, 0) || // left to right
-           check(0, 1) || // top to bottom
-           check(1, 1) || // bottom-left to top-right
-           check(-1, 1); // bottom-right to top-left
   }
 }

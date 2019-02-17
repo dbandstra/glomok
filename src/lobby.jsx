@@ -2,7 +2,8 @@ import React from 'react';
 
 import {firebaseApp} from './firebase';
 import {GameComponent} from './game';
-// import MatchComponent from './match';
+import {GameBackendFirebase} from './game-backend-firebase';
+import {GameBackendLocal} from './game-backend-local';
 
 const boardConfig = {
   numLines: 15,
@@ -53,9 +54,8 @@ class LobbyComponent extends React.Component {
         // />
         <GameComponent
           key={this.state.matchParams.key}
-          matchKey={this.state.matchParams.key}
+          backend={this.state.matchParams.backend}
           myColour={this.state.matchParams.myColour}
-          password={this.state.matchParams.password}
           boardConfig={boardConfig}
           cameraAngle={this.state.cameraAngle}
         />
@@ -84,8 +84,17 @@ class LobbyComponent extends React.Component {
   }
 
   onClickPlayLocally() {
+    const key = '' + Math.random();
+
+    const backend = new GameBackendLocal({
+      boardConfig,
+    });
+
     this.setState({
-      isMatchActive: true,
+      matchParams: {
+        key,
+        backend,
+      },
     });
   }
 
@@ -115,11 +124,17 @@ class LobbyComponent extends React.Component {
             nextMoveId: 1,
           },
         }).then(() => {
+          const backend = new GameBackendFirebase({
+            boardConfig,
+            matchKey: key,
+            myColour: 'black',
+            password,
+          });
+
           this.setState({
             matchParams: {
               key,
-              password,
-              myColour: 'black',
+              backend,
             },
           });
         });
@@ -134,11 +149,17 @@ class LobbyComponent extends React.Component {
       ['matches/' + matchKey + '/whitePassword']: password,
       ['matchdata/' + matchKey + '/info/whiteName']: 'Somebody', // TODO - let user change his/her name
     }).then(() => {
+      const backend = new GameBackendFirebase({
+        boardConfig,
+        matchKey,
+        myColour: 'white',
+        password,
+      });
+
       this.setState({
         matchParams: {
           key: matchKey,
-          password,
-          myColour: 'white',
+          backend,
         },
       });
     });
