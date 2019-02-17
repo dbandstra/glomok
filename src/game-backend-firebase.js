@@ -30,6 +30,7 @@ export class GameBackendFirebase {
           nextPlayer: getInfoField('nextPlayer'),
           nextMoveId: getInfoField('nextMoveId'),
           gridState,
+          myColour: this.myColour,
         });
       }
     });
