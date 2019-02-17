@@ -48,10 +48,6 @@ class LobbyComponent extends React.Component {
   render() {
     if (this.state.matchParams !== null) {
       return (
-        // <MatchComponent
-        //   matchKey={this.state.matchParams.key}
-        //   password={this.state.matchParams.password}
-        // />
         <GameComponent
           key={this.state.matchParams.key}
           backend={this.state.matchParams.backend}

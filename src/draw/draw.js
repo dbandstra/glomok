@@ -195,7 +195,7 @@ export function drawScene(renderState, gameParams) {
   }
 
   // place translucent tile at mouse pos -> snapped grid loc
-  if (hoverGridPos !== null) {
+  if (hoverGridPos !== null && myColour !== null) {
     const mtx = getPieceModelMatrix(hoverGridPos[0], hoverGridPos[1], 0.005);
     const setupInfo = drawModelSetup(viewInfo, mtx);
     drawPiece(renderState, setupInfo, {

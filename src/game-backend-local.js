@@ -1,3 +1,10 @@
+// note fake lag is kind of meaningless... firebase won't have this kind of lag
+// even on a slow connection, because it updates a local cache. but at least
+// this lets me make sure the "awaiting snapshot" pause at the start renders
+// correctly
+const FAKE_LAG = null;//1000;
+
+// local hot-seat gameplay
 export class GameBackendLocal {
   constructor({boardConfig}) {
     this.boardConfig = boardConfig;
@@ -6,7 +13,6 @@ export class GameBackendLocal {
     for (let i = 0; i < this.gridState.length; i++) {
       this.gridState[i] = null;
     }
-    this.gameOver = false;
 
     this.listener = null;
   }
@@ -14,21 +20,14 @@ export class GameBackendLocal {
   init({listener}) {
     this.listener = listener;
 
-    this.listener({
-      blackName: 'Player 1',
-      whiteName: 'Player 2',
-      myColour: this.myColour,
-      nextPlayer: this.myColour,
-      nextMoveId: null,
-      gridState: [...this.gridState],
-    });
+    this._updateListener();
   }
 
   deinit() {
   }
 
   makeMove(cellIndex, moveId, isWinningMove) {
-    if (this.gameOver) {
+    if (this.myColour === null) {
       return;
     }
 
@@ -38,21 +37,31 @@ export class GameBackendLocal {
 
         if (isWinningMove) {
           // since it's local we can trust this without checking again
-          this.gameOver = true;
+          this.myColour = null;
         } else {
           // don't advance myColour if game ended
           this.myColour = this.myColour === 'black' ? 'white' : 'black';
         }
 
-        this.listener({
-          blackName: 'Player 1',
-          whiteName: 'Player 2',
-          myColour: this.myColour,
-          nextPlayer: isWinningMove ? null : this.myColour,
-          nextMoveId: null,
-          gridState: [...this.gridState],
-        });
+        this._updateListener();
       }
+    }
+  }
+
+  _updateListener() {
+    const newBackendState = {
+      blackName: 'Player 1',
+      whiteName: 'Player 2',
+      myColour: this.myColour,
+      nextPlayer: this.myColour,
+      nextMoveId: null,
+      gridState: [...this.gridState],
+    };
+
+    if (FAKE_LAG) {
+      window.setTimeout(() => this.listener(newBackendState), FAKE_LAG);
+    } else {
+      this.listener(newBackendState);
     }
   }
 }

@@ -15,21 +15,12 @@ export class GameComponent extends React.Component {
     super(props);
 
     this.state = {
-      blackName: null,
-      whiteName: null,
-      nextPlayer: null, // 'black' | 'white' | null. null means game over
+      backendState: null,
       winner: null,
-      nextMoveId: null,
       winningPieces: null,
-      ///////////////
       viewInfo: null, // set in componentDidMount()
       mouse_gridPos: null,
-      gridState: new Array(this.props.boardConfig.numLines * this.props.boardConfig.numLines),
     };
-
-    for (let i = 0; i < this.state.gridState.length; i++) {
-      this.state.gridState[i] = null;
-    }
 
     this.backend = this.props.backend;
 
@@ -40,12 +31,12 @@ export class GameComponent extends React.Component {
   // don't get winning piece glitches in SECURITY_TEST mode)
   // unless that's another bug at work. it seems weird that i get glowing red
   // pieces when clicking wildly even with a pretty empty board
-  onBackendUpdate({blackName, whiteName, myColour, nextPlayer, nextMoveId, gridState}) {
+  onBackendUpdate(newBackendState) {
+    const boardConfig = this.props.boardConfig;
+
     this.setState((prevState) => {
       const winningPieces = prevState.winningPieces || [];
       let winner = prevState.winner;
-
-      const boardConfig = this.props.boardConfig;
 
       // call checkVictory on all pieces that have newly appeared since the
       // previous gridState. add 'winning pieces' to the existing winningPieces
@@ -54,12 +45,12 @@ export class GameComponent extends React.Component {
         for (let gx = 0; gx < boardConfig.numLines; gx++) {
           const ofs = gy * boardConfig.numLines + gx;
 
-          if (prevState.gridState[ofs] !== gridState[ofs]) {
-            const newWinningPieces = checkVictory({boardConfig, gridState, gx, gy}) || [];
+          if (prevState.backendState === null || prevState.backendState.gridState[ofs] !== newBackendState.gridState[ofs]) {
+            const newWinningPieces = checkVictory({boardConfig, gridState: newBackendState.gridState, gx, gy}) || [];
 
             for (const nwp of newWinningPieces) {
               if (winner === null) {
-                winner = gridState[ofs];
+                winner = newBackendState.gridState[ofs];
               }
               if (!winningPieces.find((wp) => wp[0] === nwp[0] && wp[1] === nwp[1])) {
                 winningPieces.push(nwp);
@@ -70,13 +61,8 @@ export class GameComponent extends React.Component {
       }
 
       return {
-        blackName,
-        whiteName,
-        myColour,
-        nextPlayer,
+        backendState: newBackendState,
         winner,
-        nextMoveId,
-        gridState,
         winningPieces: winningPieces.length > 0 ? winningPieces : null,
       };
     });
@@ -107,15 +93,6 @@ export class GameComponent extends React.Component {
     const viewInfo = this._calcViewInfo({cameraAngle: this.props.cameraAngle, glCanvas});
     this.setState({viewInfo});
 
-    drawScene(this.renderState, {
-      viewInfo,
-      boardConfig: this.props.boardConfig,
-      myColour: this.state.myColour,
-      getColourAtGridPos: this.getGridState.bind(this, this.state.gridState),
-      winningPieces: this.state.winningPieces,
-      hoverGridPos: null,
-    });
-
     this.backend.init({
       listener: this.onBackendUpdate.bind(this),
     });
@@ -139,14 +116,18 @@ export class GameComponent extends React.Component {
 
   repaint() {
     window.requestAnimationFrame(() => {
+      if (this.state.backendState === null) {
+        return;
+      }
+      const {gridState, myColour, nextPlayer, whiteName} = this.state.backendState;
       drawScene(this.renderState, {
         viewInfo: this.state.viewInfo,
         boardConfig: this.props.boardConfig,
-        myColour: this.state.myColour,
-        getColourAtGridPos: this.getGridState.bind(this, this.state.gridState),
+        myColour,
+        getColourAtGridPos: this.getGridState.bind(this, gridState),
         winningPieces: this.state.winningPieces,
         hoverGridPos:
-          SECURITY_TEST || (this.state.nextPlayer === this.state.myColour && this.state.whiteName !== null)
+          SECURITY_TEST || (nextPlayer !== null && nextPlayer === myColour && whiteName !== null)
             ? this.state.mouse_gridPos
             : null,
       });
@@ -155,39 +136,43 @@ export class GameComponent extends React.Component {
 
   render() {
     let isMessageHighlighted = false;
-    let message;
+    let message = 'Please wait...';
 
-    if (this.props.isHotseat) {
-      // hot seat mode
-      if (this.state.winner === 'white') {
-        isMessageHighlighted = true;
-        message = this.state.whiteName + ' wins';
-      } else if (this.state.winner === 'black') {
-        isMessageHighlighted = true;
-        message = this.state.blackName + ' wins';
-      } else if (this.state.nextPlayer === 'white') {
-        message = this.state.whiteName + ' - white';
-      } else if (this.state.nextPlayer === 'black') {
-        message = this.state.blackName + ' - black';
+    if (this.state.backendState !== null) {
+      const {blackName, myColour, nextPlayer, whiteName} = this.state.backendState;
+
+      if (this.props.isHotseat) {
+        // hot seat mode
+        if (this.state.winner === 'white') {
+          isMessageHighlighted = true;
+          message = whiteName + ' wins';
+        } else if (this.state.winner === 'black') {
+          isMessageHighlighted = true;
+          message = blackName + ' wins';
+        } else if (nextPlayer === 'white') {
+          message = whiteName + ' - white';
+        } else if (nextPlayer === 'black') {
+          message = blackName + ' - black';
+        } else {
+          // this should never happen
+        }
       } else {
-        // this should never happen
-      }
-    } else {
-      // opponent is remote
-      if (this.state.whiteName === null) {
-        message = 'Waiting for opponent to join';
-      } else if (this.state.winner === this.state.myColour) {
-        isMessageHighlighted = true;
-        message = 'You win';
-      } else if (this.state.winner !== null) {
-        isMessageHighlighted = true;
-        message = 'Opponent wins';
-      } else if (this.state.nextPlayer === this.state.myColour) {
-        message = 'Your turn (' + this.state.nextPlayer + ')';
-      } else if (this.state.nextPlayer !== null) {
-        message = 'Opponent’s turn (' + this.state.nextPlayer + ')';
-      } else {
-        // this should be never happen
+        // opponent is remote
+        if (whiteName === null) {
+          message = 'Waiting for opponent to join';
+        } else if (this.state.winner === myColour) {
+          isMessageHighlighted = true;
+          message = 'You win';
+        } else if (this.state.winner !== null) {
+          isMessageHighlighted = true;
+          message = 'Opponent wins';
+        } else if (nextPlayer === myColour) {
+          message = 'Your turn (' + nextPlayer + ')';
+        } else if (nextPlayer !== null) {
+          message = 'Opponent’s turn (' + nextPlayer + ')';
+        } else {
+          // this should be never happen
+        }
       }
     }
 
@@ -267,8 +252,12 @@ export class GameComponent extends React.Component {
       mouse_gridPos: new_gridPos,
     });
 
+    if (this.state.backendState === null) {
+      return;
+    }
     if (!SECURITY_TEST) {
-      if (this.state.nextPlayer !== this.state.myColour || this.state.whiteName === null) {
+      const {myColour, nextPlayer, whiteName} = this.state.backendState;
+      if (nextPlayer === null || nextPlayer !== myColour || whiteName === null) {
         return;
       }
     }
@@ -280,11 +269,15 @@ export class GameComponent extends React.Component {
   }
 
   _onClick() {
+    if (this.state.backendState === null) {
+      return;
+    }
     if (this.state.mouse_gridPos === null) {
       return;
     }
+    const {gridState, myColour, nextPlayer, whiteName} = this.state.backendState;
     if (!SECURITY_TEST) {
-      if (this.state.nextPlayer !== this.state.myColour || this.state.whiteName === null) {
+      if (nextPlayer === null || nextPlayer !== myColour || whiteName === null) {
         return;
       }
     }
@@ -292,15 +285,15 @@ export class GameComponent extends React.Component {
     const [gx, gy] = this.state.mouse_gridPos;
 
     if (!SECURITY_TEST) {
-      if (this.getGridState(this.state.gridState, gx, gy) !== null) {
+      if (this.getGridState(gridState, gx, gy) !== null) {
         return;
       }
     }
 
     // is this a winning move?
     const cellIndex = gy * this.props.boardConfig.numLines + gx;
-    const newGridState = [...this.state.gridState];
-    newGridState[cellIndex] = this.state.myColour;
+    const newGridState = [...gridState];
+    newGridState[cellIndex] = myColour;
 
     const isWinningMove = checkVictory({
       boardConfig: this.props.boardConfig,
@@ -309,6 +302,6 @@ export class GameComponent extends React.Component {
       gy,
     }) !== null;
 
-    this.backend.makeMove(cellIndex, this.state.nextMoveId, isWinningMove);
+    this.backend.makeMove(cellIndex, this.state.backendState.nextMoveId, isWinningMove);
   }
 }
