@@ -55,6 +55,7 @@ class LobbyComponent extends React.Component {
         <GameComponent
           key={this.state.matchParams.key}
           backend={this.state.matchParams.backend}
+          isHotseat={this.state.matchParams.isHotseat}
           myColour={this.state.matchParams.myColour}
           boardConfig={boardConfig}
           cameraAngle={this.state.cameraAngle}
@@ -94,6 +95,7 @@ class LobbyComponent extends React.Component {
       matchParams: {
         key,
         backend,
+        isHotseat: true,
       },
     });
   }
@@ -135,6 +137,7 @@ class LobbyComponent extends React.Component {
             matchParams: {
               key,
               backend,
+              isHotseat: false,
             },
           });
         });
@@ -160,6 +163,7 @@ class LobbyComponent extends React.Component {
         matchParams: {
           key: matchKey,
           backend,
+          isHotseat: false,
         },
       });
     });

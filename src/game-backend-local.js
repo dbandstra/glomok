@@ -15,8 +15,8 @@ export class GameBackendLocal {
     this.listener = listener;
 
     this.listener({
-      blackName: 'Black',
-      whiteName: 'White',
+      blackName: 'Player 1',
+      whiteName: 'Player 2',
       myColour: this.myColour,
       nextPlayer: this.myColour,
       nextMoveId: null,
@@ -45,8 +45,8 @@ export class GameBackendLocal {
         }
 
         this.listener({
-          blackName: 'Black',
-          whiteName: 'White',
+          blackName: 'Player 1',
+          whiteName: 'Player 2',
           myColour: this.myColour,
           nextPlayer: isWinningMove ? null : this.myColour,
           nextMoveId: null,

@@ -18,6 +18,7 @@ export class GameComponent extends React.Component {
       blackName: null,
       whiteName: null,
       nextPlayer: null, // 'black' | 'white' | null. null means game over
+      winner: null,
       nextMoveId: null,
       winningPieces: null,
       ///////////////
@@ -42,6 +43,7 @@ export class GameComponent extends React.Component {
   onBackendUpdate({blackName, whiteName, myColour, nextPlayer, nextMoveId, gridState}) {
     this.setState((prevState) => {
       const winningPieces = prevState.winningPieces || [];
+      let winner = prevState.winner;
 
       const boardConfig = this.props.boardConfig;
 
@@ -55,11 +57,14 @@ export class GameComponent extends React.Component {
           if (prevState.gridState[ofs] !== gridState[ofs]) {
             const newWinningPieces = checkVictory({boardConfig, gridState, gx, gy}) || [];
 
-            newWinningPieces.forEach((nwp) => {
+            for (const nwp of newWinningPieces) {
+              if (winner === null) {
+                winner = gridState[ofs];
+              }
               if (!winningPieces.find((wp) => wp[0] === nwp[0] && wp[1] === nwp[1])) {
                 winningPieces.push(nwp);
               }
-            });
+            }
           }
         }
       }
@@ -69,6 +74,7 @@ export class GameComponent extends React.Component {
         whiteName,
         myColour,
         nextPlayer,
+        winner,
         nextMoveId,
         gridState,
         winningPieces: winningPieces.length > 0 ? winningPieces : null,
@@ -148,14 +154,49 @@ export class GameComponent extends React.Component {
   }
 
   render() {
+    let isMessageHighlighted = false;
+    let message;
+
+    if (this.props.isHotseat) {
+      // hot seat mode
+      if (this.state.winner === 'white') {
+        isMessageHighlighted = true;
+        message = this.state.whiteName + ' wins';
+      } else if (this.state.winner === 'black') {
+        isMessageHighlighted = true;
+        message = this.state.blackName + ' wins';
+      } else if (this.state.nextPlayer === 'white') {
+        message = this.state.whiteName + ' - white';
+      } else if (this.state.nextPlayer === 'black') {
+        message = this.state.blackName + ' - black';
+      } else {
+        // this should never happen
+      }
+    } else {
+      // opponent is remote
+      if (this.state.whiteName === null) {
+        message = 'Waiting for opponent to join';
+      } else if (this.state.winner === this.state.myColour) {
+        isMessageHighlighted = true;
+        message = 'You win';
+      } else if (this.state.winner !== null) {
+        isMessageHighlighted = true;
+        message = 'Opponent wins';
+      } else if (this.state.nextPlayer === this.state.myColour) {
+        message = 'Your turn (' + this.state.nextPlayer + ')';
+      } else if (this.state.nextPlayer !== null) {
+        message = 'Opponent’s turn (' + this.state.nextPlayer + ')';
+      } else {
+        // this should be never happen
+      }
+    }
+
     return (
       <>
-        <div>You are {this.state.myColour}.</div>
-        <div>
-          {this.state.nextPlayer === null ? 'The game is over.' :
-           this.state.whiteName === null ? 'Waiting for opponent to join.' :
-           this.state.nextPlayer === this.state.myColour ? 'It\'s your turn.' :
-           'It\'s your opponent\'s turn.'}
+        <div className="message-container">
+          <div className={ 'message' + (isMessageHighlighted ? ' highlighted' : '')}>
+            { message }
+          </div>
         </div>
         <canvas className="glcanvas" width="700" height="600" ref={this.canvasRef}
                 onMouseMove={this.onCanvasMouseMove.bind(this)}
