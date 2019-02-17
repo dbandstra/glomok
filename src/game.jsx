@@ -189,6 +189,14 @@ class GameComponent extends React.Component {
                 onMouseDown={this.onCanvasMouseDown.bind(this)}>
           Canvas not supported.
         </canvas>
+        <div className="camera-angle-container">
+          Camera angle:
+          <select value={this.state.cameraAngle} onChange={(e) => this.props.onChangeCameraAngle(e.target.value)}>
+            <option value="default">default</option>
+            <option value="straight-down">straight down</option>
+            <option value="too-steep">too steep</option>
+          </select>
+        </div>
       </>
     );
   }

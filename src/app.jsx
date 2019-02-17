@@ -10,6 +10,7 @@ class AppComponent extends React.Component {
 
     this.state = {
       page: 'main-menu',
+      cameraAngle: 'default',
     };
   }
 
@@ -35,9 +36,9 @@ class AppComponent extends React.Component {
             key={this.state.matchParams.key}
             backend={this.state.matchParams.backend}
             isHotseat={this.state.matchParams.isHotseat}
-            myColour={this.state.matchParams.myColour}
             boardConfig={this.state.boardConfig}
             cameraAngle={this.state.cameraAngle}
+            onChangeCameraAngle={this.changeCameraAngle.bind(this)}
           />
         );
       default:
@@ -46,19 +47,30 @@ class AppComponent extends React.Component {
   }
 
   goToLobby() {
-    this.setState({page: 'lobby'});
+    this.setState({
+      page: 'lobby',
+      matchParams: null,
+    });
   }
 
   goToMainMenu() {
-    this.setState({page: 'main-menu'});
+    this.setState({
+      page: 'main-menu',
+      matchParams: null,
+    });
   }
 
   enterGame({boardConfig, matchParams}) {
     this.setState({
       page: 'game',
       boardConfig,
-      cameraAngle: 'default',
       matchParams,
+    });
+  }
+
+  changeCameraAngle(cameraAngle) {
+    this.setState({
+      cameraAngle,
     });
   }
 };
