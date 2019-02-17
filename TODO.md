@@ -15,6 +15,9 @@ features:
 * a mode for testing firebase rules, where the client lets you attempt pretty much anything?
 * write tests for firebase security rules. their emulator requires java, but i could probably get started just with a new project and a bunch of curl commands or something
 
+## Simpler multiplayer
+Implement multiplayer in a simpler fashion, for now at least. Use Firebase only for reading... all writes use cloud functions. This can be like a reference implementation, even if it's not scalable (billing-wise).
+
 ## Barebones build system for development
 Building is really slow with Webpack, especially on my laptop. I would like to have a barebones build system for development, taking advantage of the fact that most browsers support ES2015 imports etc. All it should need to do is transpile JSX. But I couldn't quite get it working.
 

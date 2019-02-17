@@ -150,9 +150,9 @@ class GameComponent extends React.Component {
           isMessageHighlighted = true;
           message = blackName + ' wins';
         } else if (nextPlayer === 'white') {
-          message = whiteName + ' - white';
+          message = whiteName + '’s turn (white)';
         } else if (nextPlayer === 'black') {
-          message = blackName + ' - black';
+          message = blackName + '’s turn (black)';
         } else {
           // this should never happen
         }
@@ -190,7 +190,7 @@ class GameComponent extends React.Component {
           Canvas not supported.
         </canvas>
         <div className="camera-angle-container">
-          Camera angle:
+          Camera angle:{' '}
           <select value={this.state.cameraAngle} onChange={(e) => this.props.onChangeCameraAngle(e.target.value)}>
             <option value="default">default</option>
             <option value="straight-down">straight down</option>

@@ -6,7 +6,9 @@ const FAKE_LAG = null;//1000;
 
 // local hot-seat gameplay
 export class GameBackendLocal {
-  constructor({boardConfig}) {
+  constructor({blackName, boardConfig, whiteName}) {
+    this.blackName = blackName;
+    this.whiteName = whiteName;
     this.boardConfig = boardConfig;
     this.myColour = 'black';
     this.gridState = new Array(boardConfig.numLines * boardConfig.numLines);
@@ -50,8 +52,8 @@ export class GameBackendLocal {
 
   _updateListener() {
     const newBackendState = {
-      blackName: 'Player 1',
-      whiteName: 'Player 2',
+      blackName: this.blackName,
+      whiteName: this.whiteName,
       myColour: this.myColour,
       nextPlayer: this.myColour,
       nextMoveId: null,
