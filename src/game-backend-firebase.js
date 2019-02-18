@@ -1,10 +1,9 @@
 import {firebaseApp} from './firebase';
 
 export class GameBackendFirebase {
-  constructor({boardConfig, matchKey, myColour, password}) {
+  constructor({boardConfig, matchKey, password}) {
     this.boardConfig = boardConfig;
     this.matchKey = matchKey;
-    this.myColour = myColour;
     this.password = password;
     this.listener = null;
   }
@@ -25,12 +24,16 @@ export class GameBackendFirebase {
           return val['info'] && typeof val['info'][fieldName] !== 'undefined' ? val['info'][fieldName] : null;
         };
         this.listener({
-          blackName: getInfoField('blackName'),
-          whiteName: getInfoField('whiteName'),
+          playerOneName: getInfoField('playerOneName'),
+          playerTwoName: getInfoField('playerTwoName'),
+          gameId: getInfoField('gameId'),
+          isPlayerOneBlack: getInfoField('isPlayerOneBlack'),
+          playerOneWins: getInfoField('playerOneWins'),
+          playerTwoWins: getInfoField('playerTwoWins'),
+          winner: getInfoField('winner'),
           nextPlayer: getInfoField('nextPlayer'),
           nextMoveId: getInfoField('nextMoveId'),
           gridState,
-          myColour: this.myColour,
         });
       }
     });
@@ -40,19 +43,41 @@ export class GameBackendFirebase {
     this.matchDataRef.off('value', this.matchDataCallback);
   }
 
-  makeMove(cellIndex, moveId, isWinningMove) {
+  makeMove(cellIndex, myColour, moveId, isWinningMove) {
     const encodedCellIndex = encodeCellIndex(cellIndex);
-    const payload = {
-      ['matchdata/' + this.matchKey + '/board/' + encodedCellIndex]: this.myColour,
-      ['matchdata/' + this.matchKey + '/moves/' + moveId]: encodedCellIndex,
-      ['matchdata/' + this.matchKey + '/info/nextPlayer']:
-        isWinningMove ? null :
-        this.myColour === 'black' ? 'white' : 'black',
-      ['matchdata/' + this.matchKey + '/info/nextMoveId']: moveId + 1,
-      ['matches/' + this.matchKey + '/lastMoveBy']: this.password,
-    };
-    console.log(payload);
-    firebaseApp.database().ref('/').update(payload);
+    firebaseApp.functions().httpsCallable('makeMove')({
+      cellIndex: encodedCellIndex,
+      isWinningMove,
+      matchKey: this.matchKey,
+      moveId,
+      myColour,
+      password: this.password,
+    });
+    // const payload = {
+    //   ['matchdata/' + this.matchKey + '/board/' + encodedCellIndex]: this.myColour,
+    //   ['matchdata/' + this.matchKey + '/moves/' + moveId]: encodedCellIndex,
+    //   ['matchdata/' + this.matchKey + '/info/nextPlayer']:
+    //     isWinningMove ? null :
+    //     this.myColour === 'black' ? 'white' : 'black',
+    //   ['matchdata/' + this.matchKey + '/info/nextMoveId']: moveId + 1,
+    //   ['matches/' + this.matchKey + '/lastMoveBy']: this.password,
+    // };
+    // console.log(payload);
+    // firebaseApp.database().ref('/').update(payload);
+  }
+
+  forfeitGame() {
+    firebaseApp.functions().httpsCallable('forfeitGame')({
+      matchKey: this.matchKey,
+      password: this.password,
+    });
+  }
+
+  startNextGame() {
+    firebaseApp.functions().httpsCallable('startNextGame')({
+      matchKey: this.matchKey,
+      password: this.password,
+    });
   }
 }
 

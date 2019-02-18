@@ -35,6 +35,7 @@ class AppComponent extends React.Component {
           <GameComponent
             key={this.state.matchParams.key}
             backend={this.state.matchParams.backend}
+            isPlayerOne={this.state.matchParams.isPlayerOne}
             isHotseat={this.state.matchParams.isHotseat}
             boardConfig={this.state.boardConfig}
             cameraAngle={this.state.cameraAngle}

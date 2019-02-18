@@ -3,6 +3,7 @@ bugs:
 
 features:
 * keyboard control
+* better scoreboard widget - show which player is you, and who is black/white
 * better mobile support (don't rely on mouse hover effect)
 * update canvas width on resize
 * add a license
@@ -12,11 +13,14 @@ features:
 * option to throw the board if you lose (animate board and pieces flying)
 * dark mode
 * get firebase config out of the src folder?
-* a mode for testing firebase rules, where the client lets you attempt pretty much anything?
 * write tests for firebase security rules. their emulator requires java, but i could probably get started just with a new project and a bunch of curl commands or something
+* starting a new game should require agreement from both players
+* turn time limits
+* games in lobby should expire (and don't show full games)
+* lobby should be a separate table in the db with only essential info, updated by db triggers
 
-## Simpler multiplayer
-Implement multiplayer in a simpler fashion, for now at least. Use Firebase only for reading... all writes use cloud functions. This can be like a reference implementation, even if it's not scalable (billing-wise).
+## Multiplayer
+I've reimplemented the multiplayer using cloud functions for everything (no write access to the db at all). I would like to get rid of at least the `makeMove` function and reimplement it with direct db access / security rules (though I'll probably have to make a new function `claimVictory`). Make sure the password-based security still works.
 
 ## Barebones build system for development
 Building is really slow with Webpack, especially on my laptop. I would like to have a barebones build system for development, taking advantage of the fact that most browsers support ES2015 imports etc. All it should need to do is transpile JSX. But I couldn't quite get it working.

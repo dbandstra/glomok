@@ -1,13 +1,14 @@
 import firebase from 'firebase/app';
 import 'firebase/database';
+import 'firebase/functions';
 
 const config = {
-  apiKey: 'AIzaSyA-1wxUEyo_-o5VjlM-kzQgnymtYGJPS_U',
-  authDomain: 'glomok-a6848.firebaseapp.com',
-  databaseURL: 'https://glomok-a6848.firebaseio.com',
-  projectId: 'glomok-a6848',
-  storageBucket: 'glomok-a6848.appspot.com',
-  messagingSenderId: '952832220581',
+  apiKey: "AIzaSyCATCUYWleLEp6vf45XbAk0Uu_2gK_zqig",
+  authDomain: "glomok-simple.firebaseapp.com",
+  databaseURL: "https://glomok-simple.firebaseio.com",
+  projectId: "glomok-simple",
+  storageBucket: "glomok-simple.appspot.com",
+  messagingSenderId: "488317740124"
 };
 
 export const firebaseApp = firebase.initializeApp(config);

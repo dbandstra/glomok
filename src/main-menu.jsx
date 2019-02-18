@@ -8,8 +8,8 @@ class MainMenuComponent extends React.Component {
     super(props);
 
     this.state = {
-      blackName: 'Player 1',
-      whiteName: 'Player 2',
+      playerOneName: 'Player 1',
+      playerTwoName: 'Player 2',
     };
   }
 
@@ -20,11 +20,11 @@ class MainMenuComponent extends React.Component {
 
         <h4>Play locally</h4>
         <form onSubmit={this.onClickPlayLocally.bind(this)}>
-          Black name:{' '}
-          <input type="text" value={this.state.blackName} onChange={this.updateBlackName.bind(this)} />
+          Player 1 name:{' '}
+          <input type="text" value={this.state.playerOneName} onChange={this.updatePlayerOneName.bind(this)} />
           <br />
-          White name:{' '}
-          <input type="text" value={this.state.whiteName} onChange={this.updateWhiteName.bind(this)} />
+          Player 2 name:{' '}
+          <input type="text" value={this.state.playerTwoName} onChange={this.updatePlayerTwoName.bind(this)} />
           <br />
           <button>Start</button>
         </form>
@@ -35,15 +35,15 @@ class MainMenuComponent extends React.Component {
     );
   }
 
-  updateBlackName(event) {
+  updatePlayerOneName(event) {
     this.setState({
-      blackName: event.target.value,
+      playerOneName: event.target.value,
     });
   }
 
-  updateWhiteName(event) {
+  updatePlayerTwoName(event) {
     this.setState({
-      whiteName: event.target.value,
+      playerTwoName: event.target.value,
     });
   }
 
@@ -55,11 +55,12 @@ class MainMenuComponent extends React.Component {
       matchParams: {
         key: '' + Math.random(),
         backend: new GameBackendLocal({
-          blackName: this.state.blackName,
-          whiteName: this.state.whiteName,
           boardConfig,
+          playerOneName: this.state.playerOneName,
+          playerTwoName: this.state.playerTwoName,
         }),
         isHotseat: true,
+        isPlayerOne: null, // meaningless for hot seat gameplay
       },
     });
   }

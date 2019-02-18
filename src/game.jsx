@@ -16,7 +16,7 @@ class GameComponent extends React.Component {
 
     this.state = {
       backendState: null,
-      winner: null,
+      gameId: null,
       winningPieces: null,
       viewInfo: null, // set in componentDidMount()
       mouse_gridPos: null,
@@ -35,8 +35,11 @@ class GameComponent extends React.Component {
     const boardConfig = this.props.boardConfig;
 
     this.setState((prevState) => {
-      const winningPieces = prevState.winningPieces || [];
-      let winner = prevState.winner;
+      let winningPieces = prevState.winningPieces || [];
+
+      if (prevState.gameId !== newBackendState.gameId) {
+        winningPieces = [];
+      }
 
       // call checkVictory on all pieces that have newly appeared since the
       // previous gridState. add 'winning pieces' to the existing winningPieces
@@ -49,9 +52,6 @@ class GameComponent extends React.Component {
             const newWinningPieces = checkVictory({boardConfig, gridState: newBackendState.gridState, gx, gy}) || [];
 
             for (const nwp of newWinningPieces) {
-              if (winner === null) {
-                winner = newBackendState.gridState[ofs];
-              }
               if (!winningPieces.find((wp) => wp[0] === nwp[0] && wp[1] === nwp[1])) {
                 winningPieces.push(nwp);
               }
@@ -62,7 +62,6 @@ class GameComponent extends React.Component {
 
       return {
         backendState: newBackendState,
-        winner,
         winningPieces: winningPieces.length > 0 ? winningPieces : null,
       };
     });
@@ -119,7 +118,14 @@ class GameComponent extends React.Component {
       if (this.state.backendState === null) {
         return;
       }
-      const {gridState, myColour, nextPlayer, whiteName} = this.state.backendState;
+
+      const {gridState, isPlayerOneBlack, nextPlayer, playerTwoName} = this.state.backendState;
+
+      const myColour =
+        this.props.isHotseat
+          ? nextPlayer
+          : (this.props.isPlayerOne === isPlayerOneBlack ? 'black' : 'white');
+
       drawScene(this.renderState, {
         viewInfo: this.state.viewInfo,
         boardConfig: this.props.boardConfig,
@@ -127,7 +133,7 @@ class GameComponent extends React.Component {
         getColourAtGridPos: this.getGridState.bind(this, gridState),
         winningPieces: this.state.winningPieces,
         hoverGridPos:
-          SECURITY_TEST || (nextPlayer !== null && nextPlayer === myColour && whiteName !== null)
+          SECURITY_TEST || (nextPlayer !== null && nextPlayer === myColour && playerTwoName !== null)
             ? this.state.mouse_gridPos
             : null,
       });
@@ -139,16 +145,22 @@ class GameComponent extends React.Component {
     let message = 'Please wait...';
 
     if (this.state.backendState !== null) {
-      const {blackName, myColour, nextPlayer, whiteName} = this.state.backendState;
+      const {isPlayerOneBlack, nextPlayer, playerOneName, playerTwoName, winner} = this.state.backendState;
+
+      const blackName = isPlayerOneBlack ? playerOneName : playerTwoName;
+      const whiteName = isPlayerOneBlack ? playerTwoName : playerOneName;
 
       if (this.props.isHotseat) {
         // hot seat mode
-        if (this.state.winner === 'white') {
+        if (nextPlayer === null) {
           isMessageHighlighted = true;
-          message = whiteName + ' wins';
-        } else if (this.state.winner === 'black') {
-          isMessageHighlighted = true;
-          message = blackName + ' wins';
+          if (winner === 'white') {
+            message = whiteName + ' wins';
+          } else if (winner === 'black') {
+            message = blackName + ' wins';
+          } else {
+            // this should never happen
+          }
         } else if (nextPlayer === 'white') {
           message = whiteName + '’s turn (white)';
         } else if (nextPlayer === 'black') {
@@ -158,14 +170,19 @@ class GameComponent extends React.Component {
         }
       } else {
         // opponent is remote
-        if (whiteName === null) {
+        const myColour = this.props.isPlayerOne === isPlayerOneBlack ? 'black' : 'white';
+
+        if (playerTwoName === null) {
           message = 'Waiting for opponent to join';
-        } else if (this.state.winner === myColour) {
+        } else if (nextPlayer === null) {
           isMessageHighlighted = true;
-          message = 'You win';
-        } else if (this.state.winner !== null) {
-          isMessageHighlighted = true;
-          message = 'Opponent wins';
+          if (winner === myColour) {
+            message = 'You win';
+          } else if (winner !== null) {
+            message = 'Opponent wins';
+          } else {
+            // this should never happen
+          }
         } else if (nextPlayer === myColour) {
           message = 'Your turn (' + nextPlayer + ')';
         } else if (nextPlayer !== null) {
@@ -175,6 +192,8 @@ class GameComponent extends React.Component {
         }
       }
     }
+
+    const renderNumWins = (n) => n === 1 ? '1 win' : n + ' wins';
 
     return (
       <>
@@ -189,6 +208,24 @@ class GameComponent extends React.Component {
                 onMouseDown={this.onCanvasMouseDown.bind(this)}>
           Canvas not supported.
         </canvas>
+        {this.state.backendState !== null && this.state.backendState.playerTwoName !== null ? (
+          <>
+            <div className="start-new-game-container">
+              <button type="button" onClick={this.onClickStartNewGame.bind(this)}>
+                {this.state.backendState.nextPlayer !== null ? 'Forfeit game' : 'Play again'}
+              </button>
+            </div>
+            <div className="stats">
+              Wins:
+              <br />
+              {this.state.backendState.playerOneName}:{' '}
+              {renderNumWins(this.state.backendState.playerOneWins)}
+              <br />
+              {this.state.backendState.playerTwoName}:{' '}
+              {renderNumWins(this.state.backendState.playerTwoWins)}
+            </div>
+          </>
+        ) : ''}
         <div className="camera-angle-container">
           Camera angle:{' '}
           <select value={this.state.cameraAngle} onChange={(e) => this.props.onChangeCameraAngle(e.target.value)}>
@@ -199,6 +236,16 @@ class GameComponent extends React.Component {
         </div>
       </>
     );
+  }
+
+  onClickStartNewGame() {
+    if (this.state.backendState !== null && this.state.backendState.nextPlayer !== null) {
+      if (confirm('Really forfeit the game? It will be counted as a win for your opponent.')) {
+        this.backend.forfeitGame();
+      }
+    } else {
+      this.backend.startNextGame();
+    }
   }
 
   onCanvasMouseMove(event) {
@@ -264,8 +311,13 @@ class GameComponent extends React.Component {
       return;
     }
     if (!SECURITY_TEST) {
-      const {myColour, nextPlayer, whiteName} = this.state.backendState;
-      if (nextPlayer === null || nextPlayer !== myColour || whiteName === null) {
+      const {isPlayerOneBlack, nextPlayer, playerTwoName} = this.state.backendState;
+      const myColour =
+        this.props.isHotseat
+          ? nextPlayer
+          : (this.props.isPlayerOne === isPlayerOneBlack ? 'black' : 'white');
+
+      if (nextPlayer === null || nextPlayer !== myColour || playerTwoName === null) {
         return;
       }
     }
@@ -283,9 +335,13 @@ class GameComponent extends React.Component {
     if (this.state.mouse_gridPos === null) {
       return;
     }
-    const {gridState, myColour, nextPlayer, whiteName} = this.state.backendState;
+    const {gridState, isPlayerOneBlack, nextPlayer, playerTwoName} = this.state.backendState;
+    const myColour =
+      this.props.isHotseat
+        ? nextPlayer
+        : (this.props.isPlayerOne === isPlayerOneBlack ? 'black' : 'white');
     if (!SECURITY_TEST) {
-      if (nextPlayer === null || nextPlayer !== myColour || whiteName === null) {
+      if (nextPlayer === null || nextPlayer !== myColour || playerTwoName === null) {
         return;
       }
     }
@@ -310,7 +366,7 @@ class GameComponent extends React.Component {
       gy,
     }) !== null;
 
-    this.backend.makeMove(cellIndex, this.state.backendState.nextMoveId, isWinningMove);
+    this.backend.makeMove(cellIndex, myColour, this.state.backendState.nextMoveId, isWinningMove);
   }
 }
 

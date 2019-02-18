@@ -1,0 +1,258 @@
+type MatchDataInfo {
+  name: Any | Null,
+  blackName: Any | Null,
+  whiteName: Any | Null,
+  nextPlayer: Any | Null,
+  nextMoveId: Any | Null,
+}
+
+path /matchdata {
+  read() { true }
+}
+
+// note: the reason i created this 'info' sub-object is because of the
+// write-rule cascading. if 'board' was a sub-object of this stuff, then the
+// 'board' rules would not be able to revoke write access - only to make them
+// more permissive.
+// and i can't have 'board' as a sub-object and implement all rules under
+// board, because writes will fail if i write to another field here (if writing
+// is only permitted in the 'board' rules').
+// therefore, the structure of your data is actually part of the logic(!).
+// i separate 'info' and 'board' into sibling objects, so that their rules are
+// both able to increase permissiveness.
+
+// the logic is more important than the data model. you are trying to implement
+// a series of rules (constraints - or the opposite of constraints: nothing is
+// allowed, except X, Y, and Z...). there are also some data objects you need
+// to persistent. but the actual "data model" (in firebase) will end up having
+// a bunch of extra fields, and be laid out in a certain way, that has more to
+// do with the logic.
+
+// perhaps it would even be possible to make a "compiler" which turns a list of
+// constraints into firebase security rules? that's a bit excessive, but i hope
+// at least to clarify the process and maybe create a bit of a vocabulary...
+// (to make it easier to "manually" compile them)
+
+// second note... when do you bubble up rules and when do you keep them at
+// child paths? i've bubbled a lot of fields up into the /info rules.
+// i think that you should always bubble up, except when you can't. the reason
+// i needed 'board' and 'moves' separately, is that they are kind of imitating
+// loops or counters or something like that, which isn't possible to express
+// using the operators available in firebase rules.
+// there are 225 grid cells, and you can make a move, but only at one location.
+// you can't place two at once. if firebase had a 'number of children' operator
+// this would have been a lot simpler.
+
+path /matchdata/{matchId}/info is MatchDataInfo {
+  write() {
+    prior(this).val() == null ? (
+      // creating (creator must be the black player)
+      this.child('name').val() != null &&
+      this.child('nextPlayer').val() == 'black' &&
+      this.child('blackName').val() != null &&
+      this.child('whiteName').val() == null &&
+      this.child('nextMoveId').val() == 1 &&
+      // 'board' and 'moves' must not be created
+      root.child('matchdata').child(matchId).child('board').val() == null &&
+      root.child('matchdata').child(matchId).child('moves').val() == null &&
+      // must create /matches as well
+      prior(root).child('matches').child(matchId).val() == null &&
+      root.child('matches').child(matchId).val() != null
+    ) : this.val() == null ? (
+      // deleting
+      false
+    ) : (
+      // updating
+      (
+        // white player joining
+
+        // these fields cannot change
+        this.child('name').val() == prior(this).child('name').val() &&
+        this.child('blackName').val() == prior(this).child('blackName').val() &&
+        this.child('nextPlayer').val() == prior(this).child('nextPlayer').val() &&
+        this.child('nextMoveId').val() == prior(this).child('nextMoveId').val() &&
+        // white name was added
+        prior(this).child('whiteName').val() == null &&
+        this.child('whiteName').val() != null &&
+        // white player joined in /matches as well
+        prior(root).child('matches').child(matchId).child('whitePassword').val() == null &&
+        root.child('matches').child(matchId).child('whitePassword').val() != null
+      ) || (
+        // making a move
+
+        // these fields cannot change
+        this.child('name').val() == prior(this).child('name').val() &&
+        this.child('blackName').val() == prior(this).child('blackName').val() &&
+        this.child('whiteName').val() == prior(this).child('whiteName').val() &&
+        // nextMoveId must be incremented
+        this.child('nextMoveId').val() == prior(this).child('nextMoveId').val() + 1
+        &&
+        // 'moves' must be updated
+        prior(root).child('matchdata').child(matchId).child('moves').child(
+          '' + prior(this).child('nextMoveId').val()
+        ).val() == null
+        &&
+        root.child('matchdata').child(matchId).child('moves').child(
+          '' + prior(this).child('nextMoveId').val()
+        ).val() != null
+        &&
+        // 'board' must be updated (entry created with your colour at the
+        // position indicated by the newly added 'move')
+        prior(root).child('matchdata').child(matchId).child('board').child(
+          root.child('matchdata').child(matchId).child('moves').child(
+            '' + prior(this).child('nextMoveId').val()
+          ).val()
+        ).val() == null
+        &&
+        root.child('matchdata').child(matchId).child('board').child(
+          root.child('matchdata').child(matchId).child('moves').child(
+            '' + prior(this).child('nextMoveId').val()
+          ).val()
+        ).val() == prior(this).child('nextPlayer').val()
+        &&
+        // matches::lastMoveBy must be changed (to your password, but of course
+        // we can't actually test that specifically)
+        root.child('matches').child(matchId).child('lastMoveBy').val() !=
+        prior(root).child('matches').child(matchId).child('lastMoveBy').val()
+        &&
+        // if prior lastMoveBy is null, meaning this is the first move made in
+        // the game, make sure that the white player has actually joined
+        root.child('matches').child(matchId).child('whitePassword').val() != null
+        &&
+        (
+          // new value of matches::lastMoveBy must be the password of black or
+          // white
+          root.child('matches').child(matchId).child('lastMoveBy').val() ==
+          root.child('matches').child(matchId).child('blackPassword').val()
+          ? (
+            // you are black - must set nextPlayer to white (or null)
+            // FIXME - i don't think clients setting nextPlayer to null is a
+            // good idea. there's probably no way to get out of this state if
+            // they do it fraudulently?
+            prior(this).child('nextPlayer').val() == 'black' &&
+            (
+              this.child('nextPlayer').val() == 'white' ||
+              this.child('nextPlayer').val() == null // (null signifies game over)
+            )
+          ) :
+          root.child('matches').child(matchId).child('lastMoveBy').val() ==
+          root.child('matches').child(matchId).child('whitePassword').val()
+          ? (
+            // you are white - must set nextPlayer to black (or null)
+            prior(this).child('nextPlayer').val() == 'white' &&
+            (
+              this.child('nextPlayer').val() == 'black' ||
+              this.child('nextPlayer').val() == null // (null signifies game over)
+            )
+          ) : (
+            // invalid password
+            false
+          )
+        )
+      )
+    )
+  }
+}
+
+path /matchdata/{matchId}/board/{cellIndex} {
+  write() {
+    prior(this).val() == null ? (
+      // creating (move being made)
+
+      // make sure the grid cell index is valid
+      cellIndex.test(/^[a-e0-9]{2}$/)
+      &&
+
+      // TODO - make sure it corresponds to the newly added 'move'/nextMoveId
+      // basically, i have a lot of rules already in matchdata/info, so i just
+      // need to 'touch' those rules with these rules, and they should become
+      // 'linked'. like, by enforcing that, when creating this, you must also
+      // create that (or increment nextMoveId in that, or something) -
+      // something that exactly parallels ONE of the 'and' rules in the other
+      // validation block ... then the two blocks become linked, and they both
+      // gain the benefit of both. you don't need to duplicate all checks in
+      // both places.
+      // however, if there are OR's, it may be more complicated?
+
+      // is there any way to prevent multiple moves from being made
+      // simultaneously?! yeah, i think so - the 'moves' entry can only point
+      // to one...
+      true
+    ) : (
+      // updating or deleting moves is not allowed
+      false
+    )
+  }
+}
+
+path /matchdata/{matchId}/moves/{moveId} {
+  // note: read access to this is probably not needed... client probably
+  // never needs to see this (it's just for security rules). but if i want to
+  // deny read i have to move it out of /matchdata
+
+  write() {
+    prior(this).val() == null ? (
+      // creating (move being made)
+      // TODO - make sure the 'board' entry was also created, and nextMoveId matches...
+      true
+    ) : (
+      // updating or deleting moves is not allowed
+      false
+    )
+  }
+}
+
+type Match {
+  blackPassword: Any | Null,
+  whitePassword: Any | Null,
+  lastMoveBy: Any | Null, // value must be one of the two passwords
+}
+
+path /matches/{matchId} is Match {
+  // no read access. this is just for security. passwords are stored here
+
+  write() {
+    prior(this).val() == null ? (
+      // creating (creator must be the black player)
+      this.child('blackPassword').val() != null &&
+      this.child('whitePassword').val() == null &&
+      this.child('lastMoveBy').val() == null &&
+      // (must create /matchdata as well)
+      prior(root).child('matchdata').child(matchId).val() == null &&
+      root.child('matchdata').child(matchId).val() != null
+    ) : this.val() == null ? (
+      // deleting
+      false
+    ) : (
+      // updating
+      (
+        // white player joining
+
+        // whitePassword must be created
+        prior(this).child('whitePassword').val() == null &&
+        this.child('whitePassword').val() != null &&
+        // white player must be joining in /matchdata as well
+        prior(root).child('matchdata').child(matchId).child('info').child('whiteName').val() == null &&
+        root.child('matchdata').child(matchId).child('info').child('whiteName').val() != null &&
+        // 'blackPassword' and 'lastMoveBy' must stay the same
+        this.child('blackPassword').val() == prior(this).child('blackPassword').val() &&
+        this.child('lastMoveBy').val() == prior(this).child('lastMoveBy').val()
+      ) || (
+        // making a move
+
+        // lastMoveBy is updated to either blackPassword or whitePassword
+        this.child('lastMoveBy').val() != prior(this).child('lastMoveBy').val() &&
+        (
+          this.child('lastMoveBy').val() == this.child('blackPassword').val() ||
+          this.child('lastMoveBy').val() == this.child('whitePassword').val()
+        ) &&
+        // TODO - link to matchdata rules (nextPlayer field)! otherwise you'll
+        // be able to skip your own turn
+
+        // 'blackPassword' and 'whitePassword' must stay the same
+        this.child('blackPassword').val() == prior(this).child('blackPassword').val() &&
+        this.child('whitePassword').val() == prior(this).child('whitePassword').val()
+      )
+    )
+  }
+}
