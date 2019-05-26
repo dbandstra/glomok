@@ -1,0 +1,32 @@
+body {
+  margin: 0;
+}
+
+.glcanvas {
+  display: block;
+  margin: 0 auto;
+}
+
+.message-container {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.message {
+  font-size: 32px;
+  text-transform: uppercase;
+  font-family: sans-serif;
+}
+.message.highlighted {
+  background: black;
+  color: white;
+}
+
+.stats,
+.camera-angle-container,
+.start-new-game-container {
+  text-align: center;
+}
