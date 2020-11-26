@@ -10,7 +10,7 @@
     "type": "git",
     "url": "git+https://github.com/dbandstra/glomok.git"
   },
-  "license": "ISC",
+  "license": "GPL-3.0-only",
   "devDependencies": {
     "@babel/core": "^7.12.9",
     "@babel/preset-env": "^7.12.7",
